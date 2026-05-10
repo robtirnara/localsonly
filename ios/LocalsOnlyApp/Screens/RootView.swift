@@ -5,7 +5,8 @@ struct RootView: View {
     @State private var showDiscardAlert = false
     @State private var pendingTab: SessionManager.AppTab?
     @State private var showOnboarding = false
-    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+    /// First-launch carousel (AIDesigner welcome → community → tastes → sign up). Independent of auth.
+    @AppStorage("hasCompletedLaunchOnboarding") private var hasCompletedLaunchOnboarding = false
     @AppStorage("appearanceMode") private var appearanceMode: Int = 0
 
     private var colorScheme: ColorScheme? {
@@ -76,16 +77,16 @@ struct RootView: View {
             OnboardingScreen(isPresented: $showOnboarding)
         }
         .onChange(of: showOnboarding) { _, newValue in
-            if !newValue { hasSeenOnboarding = true }
+            if !newValue { hasCompletedLaunchOnboarding = true }
         }
         .task {
+            if !hasCompletedLaunchOnboarding {
+                showOnboarding = true
+            }
             if session.signedIn {
                 await session.refreshEligibility()
                 await session.loadBookmarks()
                 await session.refreshNotificationCount()
-                if !hasSeenOnboarding {
-                    showOnboarding = true
-                }
             }
         }
     }

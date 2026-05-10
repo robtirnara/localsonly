@@ -58,6 +58,8 @@
 		10000000000000000000008B /* OnboardingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000008A /* OnboardingScreen.swift */; };
 		10000000000000000000008D /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000008C /* Colors.xcassets */; };
 		100000000000000000000094 /* CoastalTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000093 /* CoastalTabBar.swift */; };
+		100000000000000000000096 /* AppLinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000095 /* AppLinks.swift */; };
+		100000000000000000000098 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000097 /* SettingsScreen.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -114,6 +116,8 @@
 		10000000000000000000008A /* OnboardingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingScreen.swift; sourceTree = "<group>"; };
 		10000000000000000000008C /* Colors.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Colors.xcassets; sourceTree = "<group>"; };
 		100000000000000000000093 /* CoastalTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoastalTabBar.swift; sourceTree = "<group>"; };
+		100000000000000000000095 /* AppLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLinks.swift; sourceTree = "<group>"; };
+		100000000000000000000097 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -165,6 +169,7 @@
 				10000000000000000000001A /* APIClient.swift */,
 				10000000000000000000001C /* APIModels.swift */,
 				10000000000000000000001E /* SessionStore.swift */,
+				100000000000000000000095 /* AppLinks.swift */,
 			);
 			path = Networking;
 			sourceTree = "<group>";
@@ -226,6 +231,7 @@
 				100000000000000000000086 /* ListsScreen.swift */,
 				100000000000000000000088 /* InviteScreen.swift */,
 				10000000000000000000008A /* OnboardingScreen.swift */,
+				100000000000000000000097 /* SettingsScreen.swift */,
 			);
 			path = Screens;
 			sourceTree = "<group>";
@@ -361,6 +367,8 @@
 				100000000000000000000089 /* InviteScreen.swift in Sources */,
 				10000000000000000000008B /* OnboardingScreen.swift in Sources */,
 				100000000000000000000094 /* CoastalTabBar.swift in Sources */,
+				100000000000000000000096 /* AppLinks.swift in Sources */,
+				100000000000000000000098 /* SettingsScreen.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

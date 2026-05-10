@@ -74,7 +74,7 @@ swift test
 
 > When primary navigation changes, update this checklist in the same PR (see master plan §6 Phase 0 and [`docs/plans/README.md`](plans/README.md)).
 
-Signed-in primary navigation uses the **custom coastal bottom bar** (reference design: inactive gray + outline icons, active coral + filled icons, elevated center palm FAB — no system `TabView` strip). Items left to right: **Feed**, **Ranks**, **Log** (palm), **Map**, **Profile**. Saved places: **Profile → Saved**.
+Signed-in primary navigation uses the **custom coastal bottom bar** (reference design: inactive gray + outline icons, active coral + filled icons, elevated center palm FAB — no system `TabView` strip). Items left to right: **Feed**, **Ranks**, **Log** (palm), **Map**, **Profile**. Saved places: **Profile → Saved**. Settings (appearance, sign out, legal links): **Profile → gear → Settings**.
 
 1. Tap `Send Code` (dev code should be `111111`).
 2. Tap `Verify + Sign In`.
@@ -89,3 +89,4 @@ Signed-in primary navigation uses the **custom coastal bottom bar** (reference d
 11. Open **Ranks** (The Local List): **Trending nearby** should list **dishes or drinks** as the main title, **place name** on the next line, then **neighborhood** (or “Nearby”); use category chips (e.g. Top Eats, Surf Coffee) and confirm the list updates; when more than one neighborhood appears in the list, use the horizontal **neighborhood** pills to filter.
 12. With search on the default **items** mode, type a dish (e.g. `taco`); results should use the same dish-first card layout and open the place when tapped.
 13. (Optional) `curl 'http://127.0.0.1:8080/feed/popular-items?city=SanDiego&filter=food'` returns JSON with `itemName`, `placeName`, and `neighborhood` fields.
+14. Open **Profile**, tap the **gear**, open **Settings**; change **Appearance** and confirm the theme updates; use **Sign Out** and confirm you return to the auth flow.

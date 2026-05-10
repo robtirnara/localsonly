@@ -11,6 +11,8 @@ enum AuthStep: CaseIterable {
 struct AuthScreen: View {
     @EnvironmentObject private var session: SessionManager
 
+    @AppStorage("hasCompletedLaunchOnboarding") private var hasCompletedLaunchOnboarding = false
+
     @State private var step: AuthStep = .welcome
     @State private var isLoading = false
 
@@ -36,6 +38,16 @@ struct AuthScreen: View {
         .padding(.horizontal, Spacing.lg)
         .padding(.bottom, Spacing.xl)
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: step)
+        .onAppear {
+            if hasCompletedLaunchOnboarding {
+                step = .phone
+            }
+        }
+        .onChange(of: hasCompletedLaunchOnboarding) { _, completed in
+            if completed {
+                step = .phone
+            }
+        }
     }
 
     private var stepIndicator: some View {

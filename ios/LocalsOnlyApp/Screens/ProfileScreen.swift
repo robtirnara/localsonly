@@ -17,7 +17,7 @@ struct ProfileScreen: View {
     @State private var ratingToDelete: RatingResponse?
     @State private var ratingToEdit: RatingResponse?
     @State private var adminTapCount = 0
-    @AppStorage("appearanceMode") private var appearanceMode: Int = 0
+    @State private var showingSettings = false
     @State private var profileMainTab = 0
 
     var body: some View {
@@ -66,15 +66,6 @@ struct ProfileScreen: View {
                     } else {
                         SavedPlacesScreen(embedded: true)
                     }
-
-                    appearancePicker
-
-                    Button("Sign Out") {
-                        session.signOut()
-                    }
-                    .font(.bodyCopy)
-                    .foregroundStyle(Color.coastalStatusRestricted)
-                    .padding(.top, Spacing.sm)
                 }
                 .padding(.horizontal, Spacing.md)
                 .padding(.top, Spacing.sm)
@@ -96,6 +87,13 @@ struct ProfileScreen: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: Spacing.sm) {
+                        Button {
+                            showingSettings = true
+                        } label: {
+                            Image(systemName: "gearshape.fill")
+                                .foregroundStyle(Color.coastalAqua)
+                        }
+                        .accessibilityLabel("Settings")
                         Button {
                             showingFriends = true
                         } label: {
@@ -123,6 +121,11 @@ struct ProfileScreen: View {
                 .preferredColorScheme(.light)
                 .presentationDetents([.medium])
                 .presentationBackground(Color.coastalBackground)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsScreen()
+                .environmentObject(session)
+                .preferredColorScheme(.light)
         }
         .sheet(isPresented: $showingFriends) {
             FriendsScreen()
@@ -323,26 +326,6 @@ struct ProfileScreen: View {
             variant: .forUser(vm.profile?.id ?? UUID()),
             size: 58
         )
-    }
-
-    private var appearancePicker: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                HStack(spacing: Spacing.xs) {
-                    Image(systemName: "moon.sun")
-                        .foregroundStyle(Color.coastalAqua)
-                    Text("Appearance")
-                        .font(.cardTitle)
-                        .foregroundStyle(Color.coastalTextPrimary)
-                }
-                Picker("", selection: $appearanceMode) {
-                    Text("System").tag(0)
-                    Text("Light").tag(1)
-                    Text("Dark").tag(2)
-                }
-                .pickerStyle(.segmented)
-            }
-        }
     }
 
     private var actionsGrid: some View {

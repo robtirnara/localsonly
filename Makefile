@@ -2,6 +2,9 @@ SHELL := /bin/bash
 
 BACKEND_DIR := backend
 MIGRATIONS_DIR := $(BACKEND_DIR)/migrations
+SCRIPTS_DIR := $(BACKEND_DIR)/scripts
+SEED_BOOTSTRAP := $(SCRIPTS_DIR)/seed_bootstrap_san_diego.sql
+SEED_DEV_RESET := $(SCRIPTS_DIR)/seed_dev_reset.sql
 IOS_PROJECT := ios/LocalsOnlyApp.xcodeproj
 POSTGRES_CONTAINER := localsonly-postgres
 
@@ -25,7 +28,7 @@ PSQL_BIN := $(shell command -v psql 2>/dev/null || echo /opt/homebrew/opt/postgr
 PG_ISREADY_BIN := $(shell command -v pg_isready 2>/dev/null || echo /opt/homebrew/opt/postgresql@16/bin/pg_isready)
 CREATEDB_BIN := $(shell command -v createdb 2>/dev/null || echo /opt/homebrew/opt/postgresql@16/bin/createdb)
 
-.PHONY: help up down wait-db ensure-db migrate run test ios env
+.PHONY: help up down wait-db ensure-db migrate run test ios env seed-bootstrap seed-demo
 
 help:
 	@echo "LocalsOnly MVP commands:"
@@ -35,6 +38,8 @@ help:
 	@echo "  make ios     - open Xcode project"
 	@echo "  make down    - stop Postgres container"
 	@echo "  make env     - print active environment values"
+	@echo "  make seed-bootstrap - idempotent San Diego demo seed (safe for prod empty DB)"
+	@echo "  make seed-demo - DEV ONLY: wipe app tables + seed-bootstrap"
 	@echo ""
 	@echo "DB mode:"
 	@echo "  - Uses Docker if available"
@@ -131,6 +136,34 @@ migrate:
 		PGPASSWORD="$(DATABASE_PASSWORD)" "$(PSQL_BIN)" -h "$(DATABASE_HOST)" -p "$(DATABASE_PORT)" -U "$(DATABASE_USER)" -d "$(DATABASE_NAME)" -f "$(MIGRATIONS_DIR)/0015_notifications.sql" >/dev/null; \
 	fi
 	@echo "Migrations complete."
+
+seed-bootstrap:
+	@echo "Applying bootstrap seed ($(SEED_BOOTSTRAP))..."
+	@if docker info >/dev/null 2>&1; then \
+		cat "$(SEED_BOOTSTRAP)" | docker exec -i "$(POSTGRES_CONTAINER)" psql -U "$(DATABASE_USER)" -d "$(DATABASE_NAME)"; \
+	else \
+		if [ ! -x "$(PSQL_BIN)" ]; then \
+			echo "psql is required when Docker is unavailable."; \
+			exit 127; \
+		fi; \
+		PGPASSWORD="$(DATABASE_PASSWORD)" "$(PSQL_BIN)" -h "$(DATABASE_HOST)" -p "$(DATABASE_PORT)" -U "$(DATABASE_USER)" -d "$(DATABASE_NAME)" -f "$(SEED_BOOTSTRAP)"; \
+	fi
+	@echo "Bootstrap seed complete."
+
+seed-demo: wait-db
+	@echo "DEV ONLY: resetting app data ($(SEED_DEV_RESET)), then bootstrap seed."
+	@if docker info >/dev/null 2>&1; then \
+		cat "$(SEED_DEV_RESET)" | docker exec -i "$(POSTGRES_CONTAINER)" psql -U "$(DATABASE_USER)" -d "$(DATABASE_NAME)"; \
+		cat "$(SEED_BOOTSTRAP)" | docker exec -i "$(POSTGRES_CONTAINER)" psql -U "$(DATABASE_USER)" -d "$(DATABASE_NAME)"; \
+	else \
+		if [ ! -x "$(PSQL_BIN)" ]; then \
+			echo "psql is required when Docker is unavailable."; \
+			exit 127; \
+		fi; \
+		PGPASSWORD="$(DATABASE_PASSWORD)" "$(PSQL_BIN)" -h "$(DATABASE_HOST)" -p "$(DATABASE_PORT)" -U "$(DATABASE_USER)" -d "$(DATABASE_NAME)" -f "$(SEED_DEV_RESET)"; \
+		PGPASSWORD="$(DATABASE_PASSWORD)" "$(PSQL_BIN)" -h "$(DATABASE_HOST)" -p "$(DATABASE_PORT)" -U "$(DATABASE_USER)" -d "$(DATABASE_NAME)" -f "$(SEED_BOOTSTRAP)"; \
+	fi
+	@echo "seed-demo complete."
 
 run: up
 	@echo "Starting API at http://127.0.0.1:8080 ..."

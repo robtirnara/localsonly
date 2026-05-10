@@ -51,7 +51,8 @@ struct UserProfileScreen: View {
                 }
             }
             .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
+            .padding(.top, Spacing.sm)
+            .padding(.bottom, Spacing.sm + Spacing.tabBarScrollBottomInset)
         }
         .navigationTitle(profile?.displayName ?? "Profile")
         .navigationBarTitleDisplayMode(.inline)

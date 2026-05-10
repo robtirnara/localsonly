@@ -3,6 +3,7 @@ import UIKit
 
 @MainActor
 final class SessionManager: ObservableObject {
+    private var sessionInvalidationObserver: NSObjectProtocol?
     enum AppTab: Hashable {
         case feed
         /// Rankings list & search (matches reference “Ranks”).
@@ -34,6 +35,21 @@ final class SessionManager: ObservableObject {
     init(api: APIClient = APIClient()) {
         self.api = api
         self.signedIn = api.hasSession
+        sessionInvalidationObserver = NotificationCenter.default.addObserver(
+            forName: .localsonlySessionInvalidated,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleRemoteSessionInvalidation()
+            }
+        }
+    }
+
+    deinit {
+        if let sessionInvalidationObserver {
+            NotificationCenter.default.removeObserver(sessionInvalidationObserver)
+        }
     }
 
     func showSuccess(_ message: String) {
@@ -43,6 +59,11 @@ final class SessionManager: ObservableObject {
     }
 
     func showError(_ message: String) {
+        let lower = message.lowercased()
+        // Token is cleared on 401 before the error propagates; avoid duplicating the session-expired toast.
+        if (lower.contains("unauthorized") || lower.contains("sign in again")), !api.hasSession {
+            return
+        }
         toastType = .error
         statusMessage = message
         UINotificationFeedbackGenerator().notificationOccurred(.error)
@@ -146,5 +167,19 @@ final class SessionManager: ObservableObject {
         bookmarkedPlaceIDs = []
         unreadNotificationCount = 0
         showInfo("Signed out")
+    }
+
+    private func handleRemoteSessionInvalidation() {
+        guard signedIn else { return }
+        api.signOut()
+        signedIn = false
+        eligibilityState = "unknown"
+        selectedTab = .feed
+        selectedPlace = nil
+        bookmarkedPlaceIDs = []
+        unreadNotificationCount = 0
+        toastType = .error
+        statusMessage = "Session expired. Sign in again."
+        UINotificationFeedbackGenerator().notificationOccurred(.error)
     }
 }

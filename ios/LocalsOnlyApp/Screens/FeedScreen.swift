@@ -46,7 +46,8 @@ struct FeedScreen: View {
                         }
                     }
                 }
-                .padding(.vertical, Spacing.md)
+                .padding(.top, Spacing.md)
+                .padding(.bottom, Spacing.md + Spacing.tabBarScrollBottomInset)
             }
             .background(Color.coastalSand)
             .refreshable {

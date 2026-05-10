@@ -4,7 +4,7 @@ import Foundation
 final class ExploreViewModel: ObservableObject {
     @Published var query: String = ""
     @Published var places: [PlaceResponse] = []
-    @Published var trending: [PopularPlaceResponse] = []
+    @Published var trendingItems: [ItemSearchResponse] = []
     @Published var isLoading = false
     @Published var hasSearched = false
     @Published var selectedNeighborhood: String?
@@ -21,9 +21,20 @@ final class ExploreViewModel: ObservableObject {
         return Array(Set(hoods)).sorted()
     }
 
+    /// Neighborhoods present in the current dish trending list (for pills when browsing trending).
+    var trendingNeighborhoodFilters: [String] {
+        let hoods = trendingItems.compactMap(\.neighborhood).filter { !$0.isEmpty }
+        return Array(Set(hoods)).sorted()
+    }
+
     var filteredPlaces: [PlaceResponse] {
         guard let hood = selectedNeighborhood else { return places }
         return places.filter { $0.neighborhood == hood }
+    }
+
+    var filteredTrendingItems: [ItemSearchResponse] {
+        guard let hood = selectedNeighborhood else { return trendingItems }
+        return trendingItems.filter { $0.neighborhood == hood }
     }
 
     func search(using api: APIClient) async throws {
@@ -49,8 +60,8 @@ final class ExploreViewModel: ObservableObject {
         }
     }
 
-    func loadTrending(using api: APIClient) async throws {
-        trending = try await api.popularFeed()
+    func loadTrending(using api: APIClient, dishFilter: String? = nil) async throws {
+        trendingItems = try await api.popularItemsFeed(filter: dishFilter)
     }
 
     func suggestPlace(using api: APIClient) async throws -> PlaceResponse {

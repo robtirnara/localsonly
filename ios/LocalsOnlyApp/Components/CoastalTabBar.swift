@@ -30,18 +30,22 @@ struct CoastalTabBar: View {
                 }
 
                 logFAB
-                    .offset(y: -24)
+                    .offset(y: -20)
             }
             .padding(.horizontal, 24)
-            .padding(.top, 16)
-            .padding(.bottom, 32)
+            /// Tighter than reference `pt-4` so the strip sits lower and steals less from scroll content.
+            .padding(.top, 10)
+            /// Reference used `pb-8` (32pt); that sat labels too high — hug bottom safe/home area instead.
+            .padding(.bottom, 8)
         }
         .background {
             UnevenRoundedRectangle(cornerRadii: RectangleCornerRadii(topLeading: 32, bottomLeading: 0, bottomTrailing: 0, topTrailing: 32))
                 .fill(Color.coastalTabBar)
                 .ignoresSafeArea(edges: .bottom)
         }
-        .shadow(color: Color.coastalCoral.opacity(0.12), radius: 24, x: 0, y: -12)
+        .shadow(color: Color.coastalCoral.opacity(0.10), radius: 16, x: 0, y: -8)
+        /// `safeAreaInset` often proposes **unbounded vertical height**; `ZStack` expands to fill it — hug intrinsic height only.
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func tabColumn(tab: SessionManager.AppTab, title: String, outline: String, filled: String) -> some View {

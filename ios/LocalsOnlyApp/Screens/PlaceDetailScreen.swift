@@ -43,6 +43,7 @@ struct PlaceDetailScreen: View {
                     contentSection
                 }
             }
+            .padding(.bottom, Spacing.tabBarScrollBottomInset)
         }
         .refreshable { await load() }
         .navigationTitle(place?.name ?? "Place")

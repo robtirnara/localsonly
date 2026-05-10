@@ -110,6 +110,7 @@ struct RootView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             CoastalTabBar(selection: tabBinding)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

@@ -22,6 +22,7 @@ struct SavedPlacesScreen: View {
                         ForEach(0..<4, id: \.self) { _ in ImageTileShimmer() }
                     }
                     .padding(.horizontal, Spacing.md)
+                    .padding(.bottom, embedded ? Spacing.tabBarScrollBottomInset : 0)
                 } else if bookmarks.isEmpty {
                     EmptyStateView(
                         title: "No saved places",
@@ -29,6 +30,7 @@ struct SavedPlacesScreen: View {
                         icon: "bookmark"
                     )
                     .padding(.top, Spacing.xl)
+                    .padding(.bottom, embedded ? Spacing.tabBarScrollBottomInset : 0)
                 } else {
                     LazyVGrid(columns: gridColumns, spacing: Spacing.md) {
                         ForEach(bookmarks) { place in
@@ -51,7 +53,8 @@ struct SavedPlacesScreen: View {
                         }
                     }
                     .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.sm)
+                    .padding(.top, Spacing.sm)
+                    .padding(.bottom, Spacing.sm + (embedded ? Spacing.tabBarScrollBottomInset : 0))
                 }
             }
             .background(Color.coastalBackground)

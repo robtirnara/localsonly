@@ -2,19 +2,19 @@ import SwiftUI
 
 extension Color {
     /// Canvas tab bar / shell tint `#fffaf5` (warm cream; pairs with sand `#FFF6ED`).
-    static let coastalTabBar = Color("coastalTabBar")
-    static let coastalBackground = Color("coastalBackground")
-    static let coastalCard = Color("coastalCard")
+    static let coastalTabBar = Color(hex: 0xFFFAF5)
+    static let coastalBackground = Color(hex: 0xFFF6ED)
+    static let coastalCard = Color(hex: 0xFFFCF9)
 
-    static let vintageInk = Color("vintageInk")
-    static let coastalAqua = Color("coastalAqua")
-    static let coastalCoral = Color("coastalCoral")
-    static let coastalSand = Color("coastalSand")
+    static let vintageInk = Color(hex: 0x0F172A)
+    static let coastalAqua = Color(hex: 0x0EA5E9)
+    static let coastalCoral = Color(hex: 0xF97316)
+    static let coastalSand = Color(hex: 0xFFF6ED)
     /// Light surf tint used for chips and highlights (matches design foam panels).
-    static let coastalFoam = Color("coastalFoam")
+    static let coastalFoam = Color(hex: 0xE0F2FE)
 
-    static let coastalTextPrimary = Color("coastalTextPrimary")
-    static let coastalTextSecondary = Color("coastalTextSecondary")
+    static let coastalTextPrimary = Color(hex: 0x0F172A)
+    static let coastalTextSecondary = Color(hex: 0x6B7280)
 
     /// Primary ink / FAB background (slate-900).
     static let coastalInk = Color.vintageInk

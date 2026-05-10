@@ -229,7 +229,17 @@ private func searchByItem(_ req: Request) async throws -> [ItemSearchResponse] {
 
     let rows = try await sql.raw("""
         SELECT r.place_id, p.name AS place_name, p.category, p.neighborhood,
-               p.cover_photo_url,
+               COALESCE(
+                 (SELECT r2.photo_url FROM ratings r2
+                  WHERE r2.place_id = r.place_id AND r2.item_name = r.item_name
+                    AND r2.photo_url IS NOT NULL AND r2.is_suppressed = FALSE AND r2.privacy = 'public'
+                  ORDER BY r2.score DESC LIMIT 1),
+                 p.cover_photo_url,
+                 (SELECT r3.photo_url FROM ratings r3
+                  WHERE r3.place_id = p.id AND r3.photo_url IS NOT NULL
+                    AND r3.is_suppressed = FALSE AND r3.privacy = 'public'
+                  ORDER BY r3.score DESC LIMIT 1)
+               ) AS cover_photo_url,
                r.item_name,
                AVG(r.score)::float8 AS average_score,
                COUNT(*)::int AS ratings_count

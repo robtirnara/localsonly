@@ -100,7 +100,8 @@ struct RateScreen: View {
                         }
                     }
                     .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.md)
+                    .padding(.top, Spacing.md)
+                    .padding(.bottom, Spacing.md + Spacing.tabBarScrollBottomInset)
                 }
                 .scrollDismissesKeyboard(.interactively)
 

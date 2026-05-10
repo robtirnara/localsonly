@@ -4,8 +4,8 @@ struct ExploreScreen: View {
     @EnvironmentObject private var session: SessionManager
     @StateObject private var vm = ExploreViewModel()
     @State private var showingSuggestSheet = false
-    @State private var categoryFilter: String = "all"
-    @State private var searchMode: SearchMode = .places
+    @State private var categoryFilter: String = "food"
+    @State private var searchMode: SearchMode = .items
     @State private var itemResults: [ItemSearchResponse] = []
     @State private var neighborhoods: [NeighborhoodResponse] = []
 
@@ -21,115 +21,23 @@ struct ExploreScreen: View {
 
     var body: some View {
         NavigationStack {
+            ZStack(alignment: .top) {
+                Color.coastalSand
+                    .ignoresSafeArea()
+
                 ScrollView {
-                    VStack(spacing: Spacing.md) {
-                        searchBar
-
-                        Picker("Search mode", selection: $searchMode) {
-                            ForEach(SearchMode.allCases, id: \.self) { mode in
-                                Text(mode.rawValue).tag(mode)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .padding(.horizontal, Spacing.md)
-
-                        CategoryFilterStrip(selected: $categoryFilter)
-
-                        if !vm.neighborhoodFilters.isEmpty && !vm.places.isEmpty {
-                            neighborhoodPills
-                        }
-
-                        if vm.isLoading {
-                            LazyVGrid(columns: gridColumns, spacing: Spacing.md) {
-                                ForEach(0..<4, id: \.self) { _ in
-                                    ImageTileShimmer()
-                                }
-                            }
-                            .padding(.horizontal, Spacing.md)
-                        } else if searchMode == .items && !itemResults.isEmpty {
-                            itemResultsGrid
-                        } else if searchMode == .places && !vm.places.isEmpty {
-                            searchResultsGrid
-                        } else if vm.hasSearched || (searchMode == .items && !itemResults.isEmpty) {
-                            EmptyStateView(
-                                title: "No results found",
-                                message: searchMode == .items
-                                    ? "Try a different item like \"matcha\" or \"taco\"."
-                                    : "Try a different search or add a new place.",
-                                icon: "magnifyingglass"
-                            )
-                            .padding(.horizontal, Spacing.md)
-                        } else {
-                            if !neighborhoods.isEmpty {
-                                neighborhoodsGrid
-                            }
-
-                            if !filteredTrending.isEmpty {
-                                trendingSection
-                            } else if neighborhoods.isEmpty {
-                                EmptyStateView(
-                                    title: "Find your local spots",
-                                    message: "Search by place name or item to discover the best spots.",
-                                    icon: "magnifyingglass"
-                                )
-                                .padding(.horizontal, Spacing.md)
-                            }
-                        }
-                    }
-                    .padding(.vertical, Spacing.sm)
+                    contentBody
+                        .padding(.top, 148)
+                        .padding(.bottom, Spacing.lg + Spacing.tabBarScrollBottomInset)
                 }
-                .background(Color.coastalSand)
+                .scrollIndicators(.hidden)
+
+                ranksHeader
+            }
                 .navigationDestination(for: UUID.self) { placeID in
                     PlaceDetailScreen(placeID: placeID)
                 }
-                .navigationTitle("")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .principal) {
-                        HStack(spacing: 8) {
-                            PalmTreeShape()
-                                .fill(Color.coastalInk)
-                                .frame(width: 26, height: 30)
-                            Text("localsonly")
-                                .font(.system(size: 22, weight: .heavy, design: .rounded))
-                                .foregroundStyle(Color.coastalInk)
-                        }
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            session.selectedTab = .map
-                        } label: {
-                            Image(systemName: "map.fill")
-                                .font(.system(size: 18))
-                                .foregroundStyle(Color.coastalAqua)
-                                .frame(width: 40, height: 40)
-                                .background(Color.white.opacity(0.9))
-                                .clipShape(Circle())
-                                .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
-                        }
-                        .accessibilityLabel("Open map")
-                    }
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    Button {
-                        showingSuggestSheet = true
-                    } label: {
-                        HStack(spacing: Spacing.xs) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 16, weight: .bold))
-                            Text("Add Place")
-                                .font(.captionCopy)
-                                .fontWeight(.semibold)
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, Spacing.md)
-                        .padding(.vertical, Spacing.sm)
-                        .background(Color.coastalInk)
-                        .clipShape(Capsule())
-                        .shadow(color: Color.coastalInk.opacity(0.35), radius: 12, y: 6)
-                    }
-                    .padding(Spacing.lg)
-                }
+                .toolbar(.hidden, for: .navigationBar)
                 .sheet(isPresented: $showingSuggestSheet) {
                     suggestSheet
                         .presentationDetents([.medium])
@@ -139,6 +47,9 @@ struct ExploreScreen: View {
         .task {
             await loadTrending()
             await loadNeighborhoods()
+        }
+        .onChange(of: categoryFilter) { _, _ in
+            Task { await loadTrending() }
         }
         .onChange(of: vm.query) { _, newValue in
             if searchMode == .places {
@@ -158,46 +69,202 @@ struct ExploreScreen: View {
         }
     }
 
+    private var contentBody: some View {
+        VStack(spacing: Spacing.md) {
+            if vm.isLoading {
+                LazyVGrid(columns: gridColumns, spacing: Spacing.md) {
+                    ForEach(0..<4, id: \.self) { _ in
+                        ImageTileShimmer()
+                    }
+                }
+                .padding(.horizontal, 20)
+            } else if searchMode == .items && !itemResults.isEmpty {
+                itemResultsGrid
+            } else if searchMode == .places && !vm.places.isEmpty {
+                if !vm.neighborhoodFilters.isEmpty {
+                    neighborhoodPills
+                }
+                searchResultsGrid
+            } else if vm.hasSearched || (searchMode == .items && !itemResults.isEmpty) {
+                EmptyStateView(
+                    title: "No results found",
+                    message: searchMode == .items
+                        ? "Try a different item like \"matcha\" or \"taco\"."
+                        : "Try a different search or add a new place.",
+                    icon: "magnifyingglass"
+                )
+                .padding(.horizontal, 20)
+            } else if !vm.filteredTrendingItems.isEmpty {
+                VStack(spacing: Spacing.sm) {
+                    if !vm.trendingNeighborhoodFilters.isEmpty {
+                        trendingNeighborhoodPills
+                    }
+                    trendingSection
+                }
+            } else {
+                EmptyStateView(
+                    title: "Find your local spots",
+                    message: "Search dishes, drinks, or switch to Places to find a venue.",
+                    icon: "magnifyingglass"
+                )
+                .padding(.horizontal, 20)
+            }
+        }
+        .padding(.top, Spacing.md)
+    }
+
+    private var ranksHeader: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: Spacing.md) {
+                HStack {
+                    HStack(spacing: Spacing.xs) {
+                        PalmTreeShape()
+                            .fill(Color.coastalInk)
+                            .frame(width: 24, height: 28)
+                        Text("The Local List")
+                            .font(.system(size: 24, weight: .heavy, design: .rounded))
+                            .tracking(-0.6)
+                            .foregroundStyle(Color.coastalInk)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        session.selectedTab = .map
+                    } label: {
+                        Image(systemName: "map")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(Color.coastalAqua)
+                            .frame(width: 40, height: 40)
+                            .background(Color.coastalFoam)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.04), radius: 3, y: 1)
+                    }
+                    .accessibilityLabel("Open map")
+                }
+                .padding(.leading, 4)
+
+                searchBar
+            }
+            .padding(.top, 14)
+            .padding(.horizontal, 20)
+            .padding(.bottom, Spacing.md)
+            .background(Color.coastalSand.opacity(0.95))
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Color.orange.opacity(0.05))
+                    .frame(height: 2)
+            }
+
+            rankCategoryStrip
+                .background(Color.coastalSand.opacity(0.95))
+                .shadow(color: .black.opacity(0.02), radius: 10, y: 4)
+        }
+        .background(Color.coastalSand.opacity(0.95))
+    }
+
     // MARK: - Search Bar
 
     private var searchBar: some View {
-        HStack(spacing: Spacing.xs) {
-            TextField(searchMode == .items ? "Search items (e.g. matcha)" : "Search tacos, coffee, vibey spots…", text: $vm.query)
-                .foregroundStyle(Color.coastalTextPrimary)
-                .onSubmit {
-                    if searchMode == .items {
-                        Task { await runItemSearch() }
-                    } else {
-                        Task { await runSearch() }
+        HStack(spacing: Spacing.sm) {
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(Color.gray.opacity(0.75))
+
+                TextField(searchMode == .items ? "Tacos, matcha, pancakes…" : "Search place name…", text: $vm.query)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.coastalTextPrimary)
+                    .onSubmit {
+                        if searchMode == .items {
+                            Task { await runItemSearch() }
+                        } else {
+                            Task { await runSearch() }
+                        }
                     }
-                }
-                .padding()
-                .background(Color.coastalCard)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            .padding(.leading, Spacing.md)
+            .padding(.trailing, Spacing.sm)
+            .padding(.vertical, 13)
+            .background(Color.white.opacity(0.8))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .shadow(color: .black.opacity(0.03), radius: 1, y: 1)
 
             Button {
-                if searchMode == .items {
-                    Task { await runItemSearch() }
-                } else {
-                    Task { await runSearch() }
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    searchMode = searchMode == .places ? .items : .places
                 }
             } label: {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(Color.coastalAqua)
-                    .frame(width: 44, height: 44)
-                    .background(Color.coastalCard)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(Color.gray.opacity(0.85))
+                    .frame(width: 48, height: 46)
+                    .background(Color.white.opacity(0.8))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(Color.gray.opacity(0.10), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.03), radius: 2, y: 1)
             }
+            .accessibilityLabel("Toggle search mode")
         }
-        .padding(.horizontal, Spacing.md)
+    }
+
+    private var rankCategoryStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Spacing.sm) {
+                categoryButton(id: "food", icon: "fork.knife", title: "Top Eats")
+                categoryButton(id: "coffee", icon: "cup.and.saucer.fill", title: "Surf Coffee")
+                categoryButton(id: "drink", icon: "wineglass.fill", title: "Tiki Bars")
+                categoryButton(id: "seafood", icon: "fish.fill", title: "Seafood")
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, Spacing.sm)
+        }
+    }
+
+    private func categoryButton(id: String, icon: String, title: String) -> some View {
+        let isSelected = categoryFilter == id
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                categoryFilter = id
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: isSelected ? .bold : .semibold))
+                Text(title)
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+            }
+            .foregroundStyle(isSelected ? Color.white : Color.gray.opacity(0.82))
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.xs)
+            .background(isSelected ? Color.coastalInk : Color.white)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(Color.gray.opacity(isSelected ? 0 : 0.10), lineWidth: 1)
+            )
+            .shadow(color: isSelected ? Color.coastalInk.opacity(0.20) : .black.opacity(0.04), radius: isSelected ? 6 : 3, y: isSelected ? 3 : 1)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Neighborhood Pills
 
     private var neighborhoodPills: some View {
+        neighborhoodPillsScroll(filters: vm.neighborhoodFilters)
+    }
+
+    private var trendingNeighborhoodPills: some View {
+        neighborhoodPillsScroll(filters: vm.trendingNeighborhoodFilters)
+    }
+
+    private func neighborhoodPillsScroll(filters: [String]) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.xs) {
-                ForEach(vm.neighborhoodFilters, id: \.self) { hood in
+                ForEach(filters, id: \.self) { hood in
                     Button {
                         vm.selectedNeighborhood = vm.selectedNeighborhood == hood ? nil : hood
                     } label: {
@@ -304,35 +371,7 @@ struct ExploreScreen: View {
     private var itemResultsGrid: some View {
         LazyVStack(spacing: Spacing.sm) {
             ForEach(itemResults) { item in
-                NavigationLink(value: item.placeID) {
-                    GlassCard {
-                        HStack {
-                            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                Text(item.itemName)
-                                    .font(.cardTitle)
-                                    .foregroundStyle(Color.coastalTextPrimary)
-                                Text("\(item.placeName) · \(item.category.capitalized)")
-                                    .font(.captionCopy)
-                                    .foregroundStyle(Color.coastalTextSecondary)
-                                if let hood = item.neighborhood {
-                                    Text(hood)
-                                        .font(.microLabel)
-                                        .foregroundStyle(Color.coastalSand)
-                                }
-                            }
-                            Spacer()
-                            VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                                Text(String(format: "%.1f", item.averageScore))
-                                    .font(.sectionTitle)
-                                    .foregroundStyle(Color.scoreColor(for: item.averageScore))
-                                Text("\(item.ratingsCount) ratings")
-                                    .font(.microLabel)
-                                    .foregroundStyle(Color.coastalTextSecondary)
-                            }
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
+                ExploreItemRankRow(rank: nil, item: item)
             }
         }
         .padding(.horizontal, Spacing.md)
@@ -340,54 +379,35 @@ struct ExploreScreen: View {
 
     // MARK: - Trending
 
-    private var filteredTrending: [PopularPlaceResponse] {
-        guard categoryFilter != "all" else { return vm.trending }
-        return vm.trending.filter { item in
-            let cat = item.category.lowercased()
-            let name = item.placeName.lowercased()
-            switch categoryFilter {
-            case "food": return cat == "food" || cat == "both"
-            case "drink": return cat == "drink" || cat == "both"
-            case "coffee": return cat.contains("coffee") || cat.contains("cafe")
-            case "seafood":
-                return name.contains("fish") || name.contains("poke") || name.contains("seafood")
-                    || name.contains("sushi") || cat.contains("seafood")
-            default: return true
-            }
-        }
-    }
-
-    private var rankedTrending: [PopularPlaceResponse] {
-        filteredTrending.sorted { $0.averageScore > $1.averageScore }
-    }
-
     private var trendingSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(alignment: .center) {
                 HStack(spacing: 6) {
                     Image(systemName: "flame.fill")
                         .foregroundStyle(Color.coastalCoral)
+                        .font(.system(size: 20, weight: .bold))
                     Text("Trending nearby")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.coastalInk)
                 }
                 Spacer()
                 Text("Updated Today")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Color.coastalTextSecondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Color.gray.opacity(0.12))
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.gray.opacity(0.75))
+                    .padding(.horizontal, Spacing.xs)
+                    .padding(.vertical, 4)
+                    .background(Color.gray.opacity(0.10))
                     .clipShape(Capsule())
             }
-            .padding(.horizontal, Spacing.md)
+            .padding(.horizontal, 20)
+            .padding(.bottom, Spacing.xs)
 
-            LazyVStack(spacing: Spacing.sm) {
-                ForEach(Array(rankedTrending.enumerated()), id: \.element.id) { index, item in
-                    ExploreRankRowPopular(rank: index + 1, item: item)
+            LazyVStack(spacing: Spacing.md) {
+                ForEach(Array(vm.filteredTrendingItems.enumerated()), id: \.element.id) { index, item in
+                    ExploreItemRankRow(rank: index + 1, item: item)
                 }
             }
-            .padding(.horizontal, Spacing.md)
+            .padding(.horizontal, 20)
         }
     }
 
@@ -446,7 +466,7 @@ struct ExploreScreen: View {
 
     private func loadTrending() async {
         do {
-            try await vm.loadTrending(using: session.api)
+            try await vm.loadTrending(using: session.api, dishFilter: categoryFilter)
         } catch {
             session.showError(error.localizedDescription)
         }
@@ -485,84 +505,92 @@ struct ExploreScreen: View {
     }
 }
 
-private struct ExploreRankRowPopular: View {
-    let rank: Int
-    let item: PopularPlaceResponse
+private struct ExploreItemRankRow: View {
+    /// When non-nil, shows Local List rank styling (badges for top 3).
+    let rank: Int?
+    let item: ItemSearchResponse
 
     var body: some View {
         NavigationLink(value: item.placeID) {
-            HStack(alignment: .center, spacing: 12) {
-                rankGlyph
-                thumbnail
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .top) {
-                        Text(item.placeName)
-                            .font(.system(size: 17, weight: .bold))
-                            .foregroundStyle(Color.coastalInk)
-                            .multilineTextAlignment(.leading)
-                        Spacer(minLength: 8)
-                        scorePill(item.averageScore)
+            ZStack(alignment: .topLeading) {
+                HStack(alignment: .center, spacing: Spacing.md) {
+                    if let rank, rank > 3 {
+                        Text("\(rank)")
+                            .font(.system(size: 16, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Color.gray.opacity(0.72))
+                            .frame(width: 24)
+                            .padding(.trailing, -Spacing.xs)
                     }
-                    Text(metaLine)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.coastalTextSecondary)
-                    Text("“\(pullQuote)”")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color.coastalTextPrimary.opacity(0.88))
-                        .lineLimit(2)
+
+                    thumbnail
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(alignment: .top, spacing: Spacing.xs) {
+                            Text(item.itemName)
+                                .font(.system(size: 17, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color.coastalInk)
+                                .lineSpacing(0)
+                                .multilineTextAlignment(.leading)
+                                .lineLimit(2)
+                            Spacer(minLength: Spacing.xs)
+                            scorePill(item.averageScore)
+                        }
+
+                        Text(item.placeName)
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.gray.opacity(0.72))
+                            .padding(.top, 2)
+
+                        Text(locationLine)
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .foregroundStyle(Color.gray.opacity(0.65))
+                            .padding(.top, 2)
+
+                        Text("\"\(pullQuote)\"")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundStyle(Color.gray.opacity(0.88))
+                            .lineSpacing(2)
+                            .lineLimit(2)
+                            .padding(.top, Spacing.xs)
+                    }
+                }
+                .padding(Spacing.sm)
+
+                if let rank, rank <= 3 {
+                    Text("#\(rank)")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.white)
+                        .frame(width: 48, height: 48, alignment: .bottomTrailing)
+                        .padding(.trailing, Spacing.xs)
+                        .padding(.bottom, Spacing.xs)
+                        .background(rankAccent(rank))
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.14), radius: 4, y: 2)
+                        .offset(x: -16, y: -16)
+                        .zIndex(1)
                 }
             }
-            .padding(12)
             .background(Color.coastalCard)
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .stroke(Color.orange.opacity(0.05), lineWidth: 1)
             )
-            .shadow(color: Color.coastalInk.opacity(0.04), radius: 12, y: 4)
+            .shadow(color: Color.coastalInk.opacity(0.04), radius: 20, y: 4)
         }
         .buttonStyle(.plain)
     }
 
-    private var metaLine: String {
-        [item.neighborhood, flair(item.category)].compactMap { $0 }.joined(separator: " · ")
-    }
-
-    private func flair(_ cat: String) -> String {
-        switch cat.lowercased() {
-        case "food": return "🍽 Local eats"
-        case "drink": return "🍹 Drinks"
-        case "both": return "Food & drink"
-        default:
-            if cat.lowercased().contains("coffee") { return "☕️ Coffee" }
-            return cat.capitalized
-        }
+    private var locationLine: String {
+        item.neighborhood ?? "Nearby"
     }
 
     private var pullQuote: String {
         let avg = String(format: "%.1f", item.averageScore)
-        return "Held at \(avg) across \(item.ratingsCount) ratings."
+        return "\(avg) from \(item.ratingsCount) local ratings · \(item.placeName)."
     }
 
-    @ViewBuilder
-    private var rankGlyph: some View {
-        if rank <= 3 {
-            Text("#\(rank)")
-                .font(.system(size: 13, weight: .heavy))
-                .foregroundStyle(Color.white)
-                .frame(width: 48, height: 48)
-                .background(rankAccent)
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
-        } else {
-            Text("\(rank)")
-                .font(.system(size: 15, weight: .heavy))
-                .foregroundStyle(Color.coastalTextSecondary.opacity(0.55))
-                .frame(width: 22)
-        }
-    }
-
-    private var rankAccent: Color {
+    private func rankAccent(_ rank: Int) -> Color {
         switch rank {
         case 1: return Color(red: 0.96, green: 0.82, blue: 0.25)
         case 2: return Color(red: 0.78, green: 0.78, blue: 0.78)
@@ -576,11 +604,11 @@ private struct ExploreRankRowPopular: View {
                 .font(.system(size: 10))
                 .foregroundStyle(Color.yellow.opacity(0.95))
             Text(String(format: "%.1f", score))
-                .font(.system(size: 11, weight: .bold))
+                .font(.system(size: 12, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.coastalInk)
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 5)
+        .padding(.vertical, 3)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
@@ -609,8 +637,9 @@ private struct ExploreRankRowPopular: View {
                     .overlay(Image(systemName: "fork.knife").foregroundStyle(Color.coastalAqua))
             }
         }
-        .frame(width: rank <= 3 ? 96 : 72, height: rank <= 3 ? 96 : 72)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .frame(width: 96, height: 96)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
     }
 }
 

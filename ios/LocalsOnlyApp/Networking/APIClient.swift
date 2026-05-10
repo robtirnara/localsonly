@@ -1,5 +1,10 @@
 import Foundation
 
+extension Notification.Name {
+    /// Posted when the API returns 401 (expired or revoked session). Token is cleared before posting.
+    static let localsonlySessionInvalidated = Notification.Name("localsonlySessionInvalidated")
+}
+
 enum APIError: Error, LocalizedError {
     case invalidURL
     case unauthorized
@@ -174,6 +179,21 @@ final class APIClient {
 
     func popularFeed(city: String = "SanDiego") async throws -> [PopularPlaceResponse] {
         try await request(method: "GET", path: "/feed/popular?city=\(city)", authenticated: false)
+    }
+
+    /// Dish-at-place aggregates for Explore / The Local List (same shape as item search).
+    func popularItemsFeed(city: String = "SanDiego", filter: String? = nil, q: String? = nil) async throws -> [ItemSearchResponse] {
+        var path = "/feed/popular-items?city=\(city)"
+        if let filter, !filter.isEmpty {
+            let enc = filter.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filter
+            path += "&filter=\(enc)"
+        }
+        let trimmed = q?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !trimmed.isEmpty {
+            let enc = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trimmed
+            path += "&q=\(enc)"
+        }
+        return try await request(method: "GET", path: path, authenticated: false)
     }
 
     func myProfile() async throws -> UserProfileResponse {
@@ -606,6 +626,12 @@ final class APIClient {
         case 200..<300:
             return try jsonDecoder.decode(T.self, from: data)
         case 401:
+            if authenticated {
+                sessionStore.clear()
+                await MainActor.run {
+                    NotificationCenter.default.post(name: .localsonlySessionInvalidated, object: nil)
+                }
+            }
             throw APIError.unauthorized
         default:
             let message = String(data: data, encoding: .utf8) ?? "Request failed with status \(http.statusCode)"

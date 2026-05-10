@@ -17,7 +17,7 @@ struct LocalsOnlyApp: App {
     private static func configureTabBarAppearance() {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(named: "coastalTabBar")
+        appearance.backgroundColor = UIColor(red: 1.0, green: 250 / 255, blue: 245 / 255, alpha: 1.0)
         appearance.shadowColor = UIColor(white: 0, alpha: 0.06)
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance

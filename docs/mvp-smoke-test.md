@@ -86,3 +86,6 @@ Signed-in primary navigation uses the **custom coastal bottom bar** (reference d
 8. Open `Popular` feed and verify public ratings affect aggregates.
 9. Submit a rating as `private` and verify it does not appear in popular feed.
 10. (Optional) Call admin moderation endpoint with `ADMIN_BEARER_TOKEN` and verify suppression behavior.
+11. Open **Ranks** (The Local List): **Trending nearby** should list **dishes or drinks** as the main title, **place name** on the next line, then **neighborhood** (or “Nearby”); use category chips (e.g. Top Eats, Surf Coffee) and confirm the list updates; when more than one neighborhood appears in the list, use the horizontal **neighborhood** pills to filter.
+12. With search on the default **items** mode, type a dish (e.g. `taco`); results should use the same dish-first card layout and open the place when tapped.
+13. (Optional) `curl 'http://127.0.0.1:8080/feed/popular-items?city=SanDiego&filter=food'` returns JSON with `itemName`, `placeName`, and `neighborhood` fields.

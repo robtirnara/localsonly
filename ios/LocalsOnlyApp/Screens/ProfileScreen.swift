@@ -77,7 +77,8 @@ struct ProfileScreen: View {
                     .padding(.top, Spacing.sm)
                 }
                 .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
+                .padding(.top, Spacing.sm)
+                .padding(.bottom, Spacing.sm + Spacing.tabBarScrollBottomInset)
             }
             .refreshable { await refresh() }
             .navigationTitle("")

@@ -72,6 +72,10 @@ swift test
 
 ## 7) Manual smoke checklist
 
+> When primary navigation changes, update this checklist in the same PR (see master plan §6 Phase 0 and [`docs/plans/README.md`](plans/README.md)).
+
+Signed-in primary navigation uses the **custom coastal bottom bar** (reference design: inactive gray + outline icons, active coral + filled icons, elevated center palm FAB — no system `TabView` strip). Items left to right: **Feed**, **Ranks**, **Log** (palm), **Map**, **Profile**. Saved places: **Profile → Saved**.
+
 1. Tap `Send Code` (dev code should be `111111`).
 2. Tap `Verify + Sign In`.
 3. Tap `Recheck Eligibility` and confirm non-`browse_only` state if signals permit.

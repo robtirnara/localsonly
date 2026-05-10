@@ -18,7 +18,7 @@ struct PrimaryButton: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.sm)
-            .background(Color.coastalCoral)
+            .background(Color.coastalInk)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)

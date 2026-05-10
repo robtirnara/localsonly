@@ -10,7 +10,7 @@ final class RateViewModel: ObservableObject {
 
     @Published var itemName: String = ""
     @Published var itemCategory: String = ""
-    @Published var score: Double = 5.0
+    @Published var score: Double = 8.5
     @Published var notes: String = ""
     @Published var privacy: String = "public"
     @Published var visitDate: Date = Date()
@@ -26,6 +26,20 @@ final class RateViewModel: ObservableObject {
     }
 
     @Published var selectedTags: Set<String> = []
+
+    func resetDraft() {
+        placeQuery = ""
+        placeResults = []
+        itemName = ""
+        itemCategory = ""
+        score = 8.5
+        notes = ""
+        privacy = "public"
+        visitDate = Date()
+        selectedPhoto = nil
+        photoData = nil
+        selectedTags = []
+    }
 
     func submit(using api: APIClient, placeID: UUID) async throws -> String? {
         isSubmitting = true

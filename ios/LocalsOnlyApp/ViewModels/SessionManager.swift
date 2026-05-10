@@ -5,8 +5,11 @@ import UIKit
 final class SessionManager: ObservableObject {
     enum AppTab: Hashable {
         case feed
-        case explore
+        /// Rankings list & search (matches reference “Ranks”).
+        case ranks
         case rate
+        /// Full map (reference tab bar).
+        case map
         case profile
     }
 

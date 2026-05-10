@@ -18,30 +18,53 @@ struct ProfileScreen: View {
     @State private var ratingToEdit: RatingResponse?
     @State private var adminTapCount = 0
     @AppStorage("appearanceMode") private var appearanceMode: Int = 0
+    @State private var profileMainTab = 0
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.md) {
+                    coverBanner
                     EligibilityBanner(state: session.eligibilityState)
                     profileHeader
                     statsRow
-                    actionsGrid
-                    tasteProfileCard
-                    rankingsSection
 
-                    if vm.isLoading {
-                        ForEach(0..<2, id: \.self) { _ in
-                            LoadingShimmer()
+                    Picker("", selection: $profileMainTab) {
+                        Text("Logs").tag(0)
+                        Text("Map").tag(1)
+                        Text("Saved").tag(2)
+                    }
+                    .pickerStyle(.segmented)
+
+                    if profileMainTab == 0 {
+                        actionsGrid
+                        tasteProfileCard
+                        rankingsSection
+
+                        if vm.isLoading {
+                            ForEach(0..<2, id: \.self) { _ in
+                                LoadingShimmer()
+                            }
+                        } else if vm.ratings.isEmpty {
+                            EmptyStateView(
+                                title: "No ratings yet",
+                                message: "Share your first local review to start building your profile.",
+                                icon: "star.bubble"
+                            )
+                        } else {
+                            profileLogsGrid
+                            ratingsSection
                         }
-                    } else if vm.ratings.isEmpty {
-                        EmptyStateView(
-                            title: "No ratings yet",
-                            message: "Share your first local review to start building your profile.",
-                            icon: "star.bubble"
-                        )
+                    } else if profileMainTab == 1 {
+                        MapExploreView()
+                            .frame(height: 440)
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .stroke(Color.gray.opacity(0.12), lineWidth: 1)
+                            )
                     } else {
-                        ratingsSection
+                        SavedPlacesScreen(embedded: true)
                     }
 
                     appearancePicker
@@ -57,11 +80,19 @@ struct ProfileScreen: View {
                 .padding(.vertical, Spacing.sm)
             }
             .refreshable { await refresh() }
-            .navigationTitle("Profile")
+            .navigationTitle("")
             .navigationDestination(for: UserNavigationID.self) { nav in
                 UserProfileScreen(userID: nav.id)
             }
+            .navigationDestination(for: UUID.self) { placeID in
+                PlaceDetailScreen(placeID: placeID)
+            }
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(profileHandle)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(Color.coastalTextPrimary)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: Spacing.sm) {
                         Button {
@@ -85,30 +116,37 @@ struct ProfileScreen: View {
                 }
             }
         }
+        .preferredColorScheme(.light)
         .sheet(isPresented: $showingEditProfile) {
             editProfileSheet
+                .preferredColorScheme(.light)
                 .presentationDetents([.medium])
                 .presentationBackground(Color.coastalBackground)
         }
         .sheet(isPresented: $showingFriends) {
             FriendsScreen()
                 .environmentObject(session)
+                .preferredColorScheme(.light)
         }
         .sheet(isPresented: $showingAdmin) {
             AdminScreen()
                 .environmentObject(session)
+                .preferredColorScheme(.light)
         }
         .sheet(isPresented: $showingSaved) {
             SavedPlacesScreen()
                 .environmentObject(session)
+                .preferredColorScheme(.light)
         }
         .sheet(isPresented: $showingLists) {
             ListsScreen()
                 .environmentObject(session)
+                .preferredColorScheme(.light)
         }
         .sheet(isPresented: $showingInvites) {
             InviteScreen()
                 .environmentObject(session)
+                .preferredColorScheme(.light)
         }
         .sheet(item: $ratingToEdit) { rating in
             EditRatingSheet(rating: rating) {
@@ -116,6 +154,7 @@ struct ProfileScreen: View {
                 Task { await refresh() }
             }
             .environmentObject(session)
+            .preferredColorScheme(.light)
             .presentationDetents([.large])
             .presentationBackground(Color.coastalBackground)
         }
@@ -144,35 +183,117 @@ struct ProfileScreen: View {
         }
     }
 
+    private var profileHandle: String {
+        let raw = vm.profile?.displayName ?? session.displayName
+        let slug = raw
+            .lowercased()
+            .replacingOccurrences(of: " ", with: "_")
+            .filter { $0.isLetter || $0.isNumber || $0 == "_" }
+        return "@\(slug.isEmpty ? "local" : slug)"
+    }
+
+    private var coverBanner: some View {
+        ZStack(alignment: .top) {
+            AsyncImage(url: URL(string: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80")) { phase in
+                switch phase {
+                case .success(let img):
+                    img
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                default:
+                    LinearGradient(
+                        colors: [Color.coastalAqua.opacity(0.45), Color.coastalSand],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+            }
+            .frame(height: 200)
+            .clipped()
+
+            LinearGradient(
+                colors: [Color.black.opacity(0.55), Color.clear, Color.black.opacity(0.25)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 200)
+        }
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 0,
+                bottomLeadingRadius: 36,
+                bottomTrailingRadius: 36,
+                topTrailingRadius: 0
+            )
+        )
+        .padding(.horizontal, -Spacing.md)
+    }
+
     private var profileHeader: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                HStack(spacing: Spacing.md) {
-                    avatarView
+                HStack(alignment: .top, spacing: Spacing.md) {
+                    profileHeroAvatar
+                        .overlay(Circle().stroke(Color.white, lineWidth: 4))
+                        .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+                        .offset(y: -36)
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text(vm.profile?.displayName ?? (session.displayName.isEmpty ? "Local" : session.displayName))
-                            .font(.sectionTitle)
+                            .font(.system(size: 24, weight: .heavy))
                             .foregroundStyle(Color.coastalTextPrimary)
                         Text(vm.profile?.bio.isEmpty == false ? (vm.profile?.bio ?? "") : "No bio yet.")
                             .font(.captionCopy)
                             .foregroundStyle(Color.coastalTextSecondary)
-                            .lineLimit(2)
+                            .lineLimit(3)
                     }
-                    Spacer()
-                    Button("Edit") {
+                    Spacer(minLength: 8)
+                    Button("Edit Profile") {
                         editDisplayName = vm.profile?.displayName ?? session.displayName
                         editBio = vm.profile?.bio ?? ""
                         editAvatarURL = vm.profile?.avatarURL ?? ""
                         showingEditProfile = true
                     }
-                    .font(.captionCopy)
-                    .foregroundStyle(Color.coastalAqua)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Color.coastalTextPrimary)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.sm)
+                    .background(Color.white)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.gray.opacity(0.25), lineWidth: 1))
                 }
                 StatePill(text: session.eligibilityState)
                 Text("Member in \(vm.profile?.homeCity ?? "SanDiego")")
                     .font(.captionCopy)
                     .foregroundStyle(Color.coastalTextSecondary)
             }
+        }
+        .offset(y: -52)
+        .padding(.bottom, -40)
+    }
+
+    @ViewBuilder
+    private var profileHeroAvatar: some View {
+        if let urlString = vm.profile?.avatarURL, !urlString.isEmpty, let url = URL(string: urlString) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 96, height: 96)
+                        .clipShape(Circle())
+                default:
+                    DefaultAvatarView(
+                        variant: .forUser(vm.profile?.id ?? UUID()),
+                        size: 96
+                    )
+                }
+            }
+        } else {
+            DefaultAvatarView(
+                variant: .forUser(vm.profile?.id ?? UUID()),
+                size: 96
+            )
         }
     }
 
@@ -225,9 +346,6 @@ struct ProfileScreen: View {
 
     private var actionsGrid: some View {
         HStack(spacing: Spacing.sm) {
-            actionButton(icon: "bookmark.fill", title: "Saved", count: session.bookmarkedPlaceIDs.count) {
-                showingSaved = true
-            }
             actionButton(icon: "list.bullet.rectangle", title: "Lists", count: nil) {
                 showingLists = true
             }
@@ -418,24 +536,128 @@ struct ProfileScreen: View {
 
     private var statsRow: some View {
         HStack(spacing: Spacing.sm) {
-            statTile(title: "Ratings", value: "\(vm.ratings.count)")
-            statTile(title: "Average", value: String(format: "%.1f", vm.averageScore), score: vm.averageScore)
-            statTile(title: "Top", value: vm.topPrivacy.capitalized)
+            profileStatPill(
+                value: "\(vm.ratings.count)",
+                label: "Spots Logged",
+                accent: Color.coastalCoral
+            )
+            profileStatPill(
+                value: "—",
+                label: "Followers",
+                accent: Color.coastalAqua
+            )
+            profileStatPill(
+                value: "\(session.bookmarkedPlaceIDs.count)",
+                label: "Saved",
+                accent: Color.coastalInk
+            )
         }
     }
 
-    private func statTile(title: String, value: String, score: Double? = nil) -> some View {
-        GlassCard {
-            VStack(spacing: Spacing.xs) {
-                Text(title)
-                    .font(.microLabel)
-                    .foregroundStyle(Color.coastalTextSecondary)
-                Text(value)
-                    .font(.cardTitle)
-                    .foregroundStyle(score.map { Color.scoreColor(for: $0) } ?? .coastalAqua)
-                    .minimumScaleFactor(0.7)
+    private func profileStatPill(value: String, label: String, accent: Color) -> some View {
+        VStack(spacing: 6) {
+            Text(value)
+                .font(.system(size: 26, weight: .heavy, design: .rounded))
+                .foregroundStyle(accent)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+            Text(label)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color.coastalTextSecondary)
+                .textCase(.uppercase)
+                .tracking(0.6)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(Spacing.md)
+        .background(Color.coastalCard)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.orange.opacity(0.06), lineWidth: 1)
+        )
+        .shadow(color: Color.coastalCoral.opacity(0.05), radius: 12, y: 4)
+    }
+
+    private var profileLogsGrid: some View {
+        let cols = [
+            GridItem(.flexible(), spacing: 6),
+            GridItem(.flexible(), spacing: 6),
+            GridItem(.flexible(), spacing: 6)
+        ]
+        return LazyVGrid(columns: cols, spacing: 6) {
+            ForEach(vm.ratings) { rating in
+                NavigationLink(value: rating.placeID) {
+                    ZStack(alignment: .bottomTrailing) {
+                        ratingThumbnail(rating)
+                            .aspectRatio(1, contentMode: .fill)
+                            .clipped()
+                        Text(String(format: "%.1f", rating.score))
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.coastalInk.opacity(0.82))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .padding(8)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button {
+                        ratingToEdit = rating
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    Button(role: .destructive) {
+                        ratingToDelete = rating
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
             }
-            .frame(maxWidth: .infinity)
+
+            Button {
+                session.selectedTab = .rate
+            } label: {
+                VStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(Color.coastalAqua)
+                    Text("Log Spot")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.coastalAqua)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .aspectRatio(1, contentMode: .fit)
+                .background(Color.coastalFoam.opacity(0.65))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.coastalAqua.opacity(0.35), style: StrokeStyle(lineWidth: 2, dash: [6, 5]))
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private func ratingThumbnail(_ rating: RatingResponse) -> some View {
+        if let urlString = rating.photoURL, let url = URL(string: urlString) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let img):
+                    img
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                default:
+                    Color.coastalFoam
+                        .overlay(Image(systemName: "fork.knife").foregroundStyle(Color.coastalAqua))
+                }
+            }
+        } else {
+            Color.coastalFoam
+                .overlay(Image(systemName: "fork.knife").foregroundStyle(Color.coastalAqua))
         }
     }
 

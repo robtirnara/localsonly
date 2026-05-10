@@ -22,36 +22,12 @@ struct RootView: View {
                 .ignoresSafeArea()
 
             if session.signedIn {
-                TabView(selection: tabBinding) {
-                    FeedScreen()
-                        .tag(SessionManager.AppTab.feed)
-                        .tabItem {
-                            Label("Feed", systemImage: "bubble.left.and.bubble.right")
-                        }
-
-                    ExploreScreen()
-                        .tag(SessionManager.AppTab.explore)
-                        .tabItem {
-                            Label("Explore", systemImage: "magnifyingglass")
-                        }
-
-                    RateScreen()
-                        .tag(SessionManager.AppTab.rate)
-                        .tabItem {
-                            Label("Rate", systemImage: "slider.horizontal.3")
-                        }
-
-                    ProfileScreen()
-                        .tag(SessionManager.AppTab.profile)
-                        .tabItem {
-                            Label("Profile", systemImage: "person.crop.circle")
-                        }
-                }
+                signedInTabs
             } else {
                 AuthScreen()
             }
         }
-        .tint(.coastalAqua)
+        .tint(.coastalCoral)
         .preferredColorScheme(colorScheme)
         .environmentObject(session)
         .overlay(alignment: .top) {
@@ -114,6 +90,29 @@ struct RootView: View {
         }
     }
 
+    /// Reference layout: custom bottom bar (outline + gray inactive / fill + coral selected); no system `TabView` chrome.
+    private var signedInTabs: some View {
+        Group {
+            switch session.selectedTab {
+            case .feed:
+                FeedScreen()
+            case .ranks:
+                ExploreScreen()
+            case .rate:
+                RateScreen()
+            case .map:
+                MapTabScreen()
+            case .profile:
+                ProfileScreen()
+            }
+        }
+        // `Group` + `switch` has no intrinsic size in a `ZStack` (unlike `TabView`), so it collapses to zero without this.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            CoastalTabBar(selection: tabBinding)
+        }
+    }
+
     private var tabBinding: Binding<SessionManager.AppTab> {
         Binding(
             get: { session.selectedTab },
@@ -126,5 +125,21 @@ struct RootView: View {
                 }
             }
         )
+    }
+}
+
+/// Map tab matching reference navigation (full-screen map + place detail).
+private struct MapTabScreen: View {
+    @EnvironmentObject private var session: SessionManager
+
+    var body: some View {
+        NavigationStack {
+            MapExploreView()
+                .navigationTitle("Map")
+                .navigationBarTitleDisplayMode(.inline)
+                .navigationDestination(for: UUID.self) { placeID in
+                    PlaceDetailScreen(placeID: placeID)
+                }
+        }
     }
 }

@@ -1,13 +1,15 @@
 import SwiftUI
 
+/// Horizontal category chips aligned with the reference “Ranks” screen (Top Eats, Surf Coffee, …).
 struct CategoryFilterStrip: View {
     @Binding var selected: String
 
-    private let filters: [(id: String, label: String, icon: String)] = [
-        ("all", "All", "both"),
-        ("food", "Food", "food"),
-        ("drink", "Drinks", "drink"),
-        ("coffee", "Coffee", "coffee"),
+    private let filters: [(id: String, label: String)] = [
+        ("all", "✨ All"),
+        ("food", "🍔 Top Eats"),
+        ("coffee", "☕️ Surf Coffee"),
+        ("drink", "🍹 Tiki Bars"),
+        ("seafood", "🐟 Seafood"),
     ]
 
     var body: some View {
@@ -19,26 +21,20 @@ struct CategoryFilterStrip: View {
                             selected = filter.id
                         }
                     } label: {
-                        VStack(spacing: Spacing.xxs) {
-                            ZStack {
-                                Circle()
-                                    .fill(selected == filter.id
-                                          ? Color.coastalAqua
-                                          : Color.coastalSand.opacity(0.12))
-                                    .frame(width: 52, height: 52)
-
-                                CategoryIconView(category: filter.icon, size: 28)
-                                    .foregroundStyle(selected == filter.id
-                                                     ? .white
-                                                     : Color.coastalSand)
-                            }
-
-                            Text(filter.label)
-                                .font(.microLabel)
-                                .foregroundStyle(selected == filter.id
-                                                 ? Color.coastalTextPrimary
-                                                 : Color.coastalTextSecondary)
-                        }
+                        Text(filter.label)
+                            .font(.system(size: 13, weight: selected == filter.id ? .bold : .semibold))
+                            .foregroundStyle(selected == filter.id ? Color.white : Color.coastalTextSecondary)
+                            .padding(.horizontal, Spacing.md)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule()
+                                    .fill(selected == filter.id ? Color.coastalInk : Color.white)
+                            )
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.orange.opacity(selected == filter.id ? 0 : 0.08), lineWidth: 1)
+                            )
+                            .shadow(color: selected == filter.id ? Color.coastalInk.opacity(0.2) : .clear, radius: 6, y: 3)
                     }
                     .buttonStyle(.plain)
                 }

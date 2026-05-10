@@ -21,56 +21,86 @@ struct RateScreen: View {
     var body: some View {
         NavigationStack {
             ZStack {
+                Color.coastalSand.ignoresSafeArea()
+
                 ScrollView {
-                    VStack(spacing: Spacing.md) {
+                    VStack(spacing: Spacing.lg) {
+                        photoSection
+
                         placeSelectionSection
 
                         if let place = session.selectedPlace {
-                            PlaceCard(
-                                title: place.name,
-                                subtitle: "\(place.category.capitalized) · \(place.city)"
-                            )
+                            VStack(alignment: .leading, spacing: Spacing.md) {
+                                TextField("What did you try?", text: $vm.itemName)
+                                    .foregroundStyle(Color.coastalTextPrimary)
+                                    .focused($focusedField, equals: .itemName)
+                                    .padding()
+                                    .background(Color.gray.opacity(0.06))
+                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                            .stroke(Color.gray.opacity(0.12), lineWidth: 1)
+                                    )
+                                    .onChange(of: vm.itemName) { _, _ in trackUnsaved() }
 
-                            GlassCard {
-                                VStack(spacing: Spacing.md) {
-                                    TextField("What did you try?", text: $vm.itemName)
-                                        .foregroundStyle(Color.coastalTextPrimary)
-                                        .focused($focusedField, equals: .itemName)
-                                        .padding()
-                                        .background(Color.coastalCard)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                        .onChange(of: vm.itemName) { _, _ in trackUnsaved() }
+                                categoryInput
 
-                                    categoryInput
-
+                                VStack(alignment: .leading, spacing: Spacing.sm) {
                                     ScoreSlider(value: $vm.score)
+                                }
+                                .padding(Spacing.md)
+                                .background(Color.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 32, style: .continuous)
+                                        .stroke(Color.orange.opacity(0.08), lineWidth: 1)
+                                )
+                                .padding(.vertical, Spacing.xs)
+                                .overlay(alignment: .top) {
+                                    Divider().offset(y: -Spacing.sm)
+                                }
 
-                                    TextField("What was the vibe?", text: $vm.notes, axis: .vertical)
+                                VStack(alignment: .leading, spacing: Spacing.xs) {
+                                    Text("The Verdict")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundStyle(Color.coastalTextPrimary)
+                                        .padding(.leading, 4)
+                                    TextField("What's the tea? Talk about the flavors, the waves, the service…", text: $vm.notes, axis: .vertical)
                                         .foregroundStyle(Color.coastalTextPrimary)
                                         .focused($focusedField, equals: .notes)
-                                        .lineLimit(3...5)
+                                        .lineLimit(4...8)
                                         .padding()
-                                        .background(Color.coastalCard)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                                    visitDateRow
-
-                                    photoSection
-
-                                    tagSection
-
-                                    privacyPicker
-
-                                    PrimaryButton(title: "Submit Rating", isLoading: vm.isSubmitting) {
-                                        Task { await submitRating(placeID: place.id) }
-                                    }
-                                    .disabled(vm.itemName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                        .background(Color.gray.opacity(0.06))
+                                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                                .stroke(Color.gray.opacity(0.12), lineWidth: 1)
+                                        )
                                 }
+                                .padding(.top, Spacing.sm)
+                                .overlay(alignment: .top) {
+                                    Divider().offset(y: -Spacing.sm)
+                                }
+
+                                visitDateRow
+
+                                tagSection
+                                    .padding(.top, Spacing.sm)
+                                    .overlay(alignment: .top) {
+                                        Divider().offset(y: -Spacing.sm)
+                                    }
+
+                                privacyPicker
+
+                                PrimaryButton(title: "Post rating", isLoading: vm.isSubmitting) {
+                                    Task { await submitRating(placeID: place.id) }
+                                }
+                                .disabled(vm.itemName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             }
                         }
                     }
                     .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.sm)
+                    .padding(.vertical, Spacing.md)
                 }
                 .scrollDismissesKeyboard(.interactively)
 
@@ -80,7 +110,44 @@ struct RateScreen: View {
                 }
             }
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showSuccess)
-            .navigationTitle("Rate")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        vm.resetDraft()
+                        session.selectedPlace = nil
+                        session.hasUnsavedRating = false
+                        focusedField = nil
+                    }
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color.coastalTextSecondary)
+                }
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 6) {
+                        PalmTreeShape()
+                            .fill(Color.coastalInk)
+                            .frame(width: 20, height: 24)
+                        Text("Log Spot")
+                            .font(.system(size: 18, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Color.coastalInk)
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if let place = session.selectedPlace,
+                       !vm.itemName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Button("Post") {
+                            Task { await submitRating(placeID: place.id) }
+                        }
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Color.white)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 8)
+                        .background(Color.coastalInk)
+                        .clipShape(Capsule())
+                        .disabled(vm.isSubmitting)
+                    }
+                }
+            }
         }
     }
 
@@ -123,60 +190,51 @@ struct RateScreen: View {
     }
 
     private var placeSelectionSection: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Where was it from?")
-                    .font(.cardTitle)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Where did you go?")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Color.coastalTextPrimary)
+                .padding(.leading, 4)
+
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "mappin.circle.fill")
+                    .foregroundStyle(Color.coastalCoral)
+                    .font(.system(size: 22))
+                TextField("Search restaurant or cafe…", text: $vm.placeQuery)
                     .foregroundStyle(Color.coastalTextPrimary)
+                    .focused($focusedField, equals: .placeSearch)
+                    .onSubmit {
+                        Task { try? await vm.searchPlaces(using: session.api) }
+                    }
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 12)
+                    .background(Color.gray.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color.gray.opacity(0.15), lineWidth: 1)
+                    )
+            }
 
-                HStack(spacing: Spacing.xs) {
-                    TextField("Search places", text: $vm.placeQuery)
-                        .foregroundStyle(Color.coastalTextPrimary)
-                        .focused($focusedField, equals: .placeSearch)
-                        .onSubmit {
-                            Task { try? await vm.searchPlaces(using: session.api) }
-                        }
-                        .padding()
-                        .background(Color.coastalCard)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                    Button {
-                        Task {
-                            do {
-                                try await vm.searchPlaces(using: session.api)
-                            } catch {
-                                session.showError(error.localizedDescription)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(Color.coastalAqua)
-                            .frame(width: 44, height: 44)
-                            .background(Color.coastalCard)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            if vm.isSearchingPlaces {
+                ProgressView()
+            } else if !vm.placeResults.isEmpty {
+                ForEach(vm.placeResults.prefix(3)) { place in
+                    PlaceCard(
+                        title: place.name,
+                        subtitle: "\(place.category.capitalized) · \(place.city)",
+                        trailingText: session.selectedPlace?.id == place.id ? "Selected" : nil
+                    )
+                    .onTapGesture {
+                        session.selectedPlace = place
+                        session.showInfo("Selected \(place.name)")
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     }
                 }
-
-                if vm.isSearchingPlaces {
-                    ProgressView()
-                } else if !vm.placeResults.isEmpty {
-                    ForEach(vm.placeResults.prefix(3)) { place in
-                        PlaceCard(
-                            title: place.name,
-                            subtitle: "\(place.category.capitalized) · \(place.city)",
-                            trailingText: session.selectedPlace?.id == place.id ? "Selected" : nil
-                        )
-                        .onTapGesture {
-                            session.selectedPlace = place
-                            session.showInfo("Selected \(place.name)")
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
-                    }
-                } else if session.selectedPlace == nil {
-                    Text("Search and select a place before posting your rating.")
-                        .font(.captionCopy)
-                        .foregroundStyle(Color.coastalTextSecondary)
-                }
+            } else if session.selectedPlace == nil {
+                Text("Search and select a place before you post.")
+                    .font(.captionCopy)
+                    .foregroundStyle(Color.coastalTextSecondary)
             }
         }
     }
@@ -261,17 +319,30 @@ struct RateScreen: View {
             }
 
             PhotosPicker(selection: $vm.selectedPhoto, matching: .images) {
-                HStack(spacing: Spacing.xs) {
-                    Image(systemName: "camera")
-                    Text(hasPhoto ? "Change photo" : "Add a photo")
+                VStack(spacing: Spacing.sm) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white)
+                            .frame(width: 56, height: 56)
+                            .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
+                        Image(systemName: "camera.fill.badge.plus")
+                            .font(.system(size: 22))
+                            .foregroundStyle(Color.coastalAqua)
+                    }
+                    Text(hasPhoto ? "Change photo" : "Add a glorious photo")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Color.coastalAqua)
+                    Text("Make it crave-worthy")
+                        .font(.captionCopy)
+                        .foregroundStyle(Color.coastalTextSecondary)
                 }
-                .font(.captionCopy)
-                .foregroundStyle(Color.coastalAqua)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
+                .padding(.vertical, Spacing.lg)
+                .background(Color.coastalSand)
+                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.coastalAqua.opacity(0.4), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .stroke(Color.coastalAqua.opacity(0.35), style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
                 )
             }
             .onChange(of: vm.selectedPhoto) { _, newItem in
@@ -288,9 +359,14 @@ struct RateScreen: View {
 
     private var tagSection: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("Tags (optional)")
-                .font(.bodyCopy)
-                .foregroundStyle(Color.coastalTextSecondary)
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .foregroundStyle(Color.coastalAqua)
+                Text("Select the Vibes")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Color.coastalInk)
+            }
+            .padding(.leading, 4)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Spacing.xs) {
                     ForEach(availableTags, id: \.slug) { tag in
@@ -304,11 +380,19 @@ struct RateScreen: View {
                         } label: {
                             Text(tag.displayName)
                                 .font(.captionCopy)
-                                .foregroundStyle(vm.selectedTags.contains(tag.slug) ? .white : Color.coastalAqua)
+                                .fontWeight(vm.selectedTags.contains(tag.slug) ? .semibold : .regular)
+                                .foregroundStyle(Color.coastalAqua)
                                 .padding(.horizontal, Spacing.sm)
                                 .padding(.vertical, Spacing.xs)
-                                .background(vm.selectedTags.contains(tag.slug) ? Color.coastalAqua : Color.coastalAqua.opacity(0.12))
-                                .clipShape(Capsule())
+                                .background(vm.selectedTags.contains(tag.slug) ? Color.coastalFoam : Color.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .stroke(
+                                            vm.selectedTags.contains(tag.slug) ? Color.coastalAqua : Color.gray.opacity(0.25),
+                                            lineWidth: vm.selectedTags.contains(tag.slug) ? 1.5 : 1
+                                        )
+                                )
                         }
                         .buttonStyle(.plain)
                     }

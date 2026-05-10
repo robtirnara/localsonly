@@ -48,6 +48,7 @@
 		100000000000000000000077 /* WavesLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000076 /* WavesLoadingView.swift */; };
 		100000000000000000000079 /* ImageTileCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000078 /* ImageTileCard.swift */; };
 		10000000000000000000007B /* FeedPhotoCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000007A /* FeedPhotoCard.swift */; };
+		100000000000000000000091 /* SocialFeedCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000090 /* SocialFeedCard.swift */; };
 		10000000000000000000007D /* CategoryFilterStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000007C /* CategoryFilterStrip.swift */; };
 		100000000000000000000081 /* FullScreenPhotoViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000080 /* FullScreenPhotoViewer.swift */; };
 		100000000000000000000083 /* NotificationsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000082 /* NotificationsScreen.swift */; };
@@ -56,6 +57,7 @@
 		100000000000000000000089 /* InviteScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000088 /* InviteScreen.swift */; };
 		10000000000000000000008B /* OnboardingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000008A /* OnboardingScreen.swift */; };
 		10000000000000000000008D /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000008C /* Colors.xcassets */; };
+		100000000000000000000094 /* CoastalTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000093 /* CoastalTabBar.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -102,6 +104,7 @@
 		100000000000000000000076 /* WavesLoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WavesLoadingView.swift; sourceTree = "<group>"; };
 		100000000000000000000078 /* ImageTileCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageTileCard.swift; sourceTree = "<group>"; };
 		10000000000000000000007A /* FeedPhotoCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedPhotoCard.swift; sourceTree = "<group>"; };
+		100000000000000000000090 /* SocialFeedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialFeedCard.swift; sourceTree = "<group>"; };
 		10000000000000000000007C /* CategoryFilterStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryFilterStrip.swift; sourceTree = "<group>"; };
 		100000000000000000000080 /* FullScreenPhotoViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullScreenPhotoViewer.swift; sourceTree = "<group>"; };
 		100000000000000000000082 /* NotificationsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsScreen.swift; sourceTree = "<group>"; };
@@ -110,6 +113,7 @@
 		100000000000000000000088 /* InviteScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteScreen.swift; sourceTree = "<group>"; };
 		10000000000000000000008A /* OnboardingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingScreen.swift; sourceTree = "<group>"; };
 		10000000000000000000008C /* Colors.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Colors.xcassets; sourceTree = "<group>"; };
+		100000000000000000000093 /* CoastalTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoastalTabBar.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -195,8 +199,10 @@
 				100000000000000000000076 /* WavesLoadingView.swift */,
 				100000000000000000000078 /* ImageTileCard.swift */,
 				10000000000000000000007A /* FeedPhotoCard.swift */,
+				100000000000000000000090 /* SocialFeedCard.swift */,
 				10000000000000000000007C /* CategoryFilterStrip.swift */,
 				100000000000000000000080 /* FullScreenPhotoViewer.swift */,
+				100000000000000000000093 /* CoastalTabBar.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -346,6 +352,7 @@
 				100000000000000000000077 /* WavesLoadingView.swift in Sources */,
 				100000000000000000000079 /* ImageTileCard.swift in Sources */,
 				10000000000000000000007B /* FeedPhotoCard.swift in Sources */,
+				100000000000000000000091 /* SocialFeedCard.swift in Sources */,
 				10000000000000000000007D /* CategoryFilterStrip.swift in Sources */,
 				100000000000000000000081 /* FullScreenPhotoViewer.swift in Sources */,
 				100000000000000000000083 /* NotificationsScreen.swift in Sources */,
@@ -353,6 +360,7 @@
 				100000000000000000000087 /* ListsScreen.swift in Sources */,
 				100000000000000000000089 /* InviteScreen.swift in Sources */,
 				10000000000000000000008B /* OnboardingScreen.swift in Sources */,
+				100000000000000000000094 /* CoastalTabBar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -10,15 +10,15 @@ struct BrandLockupView: View {
     private var compactLayout: some View {
         HStack(spacing: 10) {
             PalmTreeShape()
-                .fill(Color.vintageInk)
+                .fill(Color.coastalAqua)
                 .frame(width: 32, height: 40)
 
             Text("localsonly")
-                .font(.system(size: 20, weight: .bold, design: .serif))
-                .foregroundStyle(Color.vintageInk)
+                .font(.system(size: 20, weight: .heavy, design: .default))
+                .foregroundStyle(Color.coastalInk)
 
             SeagullShape()
-                .stroke(Color.vintageInk,
+                .stroke(Color.coastalAqua,
                         style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
                 .frame(width: 20, height: 12)
         }
@@ -26,23 +26,23 @@ struct BrandLockupView: View {
         .padding(.vertical, 7)
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.vintageInk, lineWidth: 1.3)
+                .stroke(Color.coastalAqua.opacity(0.35), lineWidth: 1.3)
         )
     }
 
     private var fullLayout: some View {
         VStack(spacing: Spacing.xs) {
             PalmTreeShape()
-                .fill(Color.vintageInk)
+                .fill(Color.coastalAqua)
                 .frame(width: 48, height: 56)
 
             HStack(alignment: .top, spacing: 4) {
                 Text("localsonly")
                     .font(.heroTitle)
-                    .foregroundStyle(Color.vintageInk)
+                    .foregroundStyle(Color.coastalInk)
 
                 SeagullShape()
-                    .stroke(Color.vintageInk,
+                    .stroke(Color.coastalAqua,
                             style: StrokeStyle(lineWidth: 1.8, lineCap: .round))
                     .frame(width: 20, height: 12)
                     .padding(.top, 2)
@@ -52,7 +52,7 @@ struct BrandLockupView: View {
         .padding(.vertical, Spacing.md)
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.vintageInk, lineWidth: 1.5)
+                .stroke(Color.coastalAqua.opacity(0.35), lineWidth: 1.5)
         )
     }
 }

@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct SavedPlacesScreen: View {
+    /// When `true`, the screen is shown as a root tab (no Done dismiss button).
+    var embedded: Bool = false
+
     @EnvironmentObject private var session: SessionManager
     @Environment(\.dismiss) private var dismiss
     @State private var bookmarks: [BookmarkedPlaceResponse] = []
@@ -51,6 +54,7 @@ struct SavedPlacesScreen: View {
                     .padding(.vertical, Spacing.sm)
                 }
             }
+            .background(Color.coastalBackground)
             .refreshable { await load() }
             .navigationTitle("Saved")
             .navigationBarTitleDisplayMode(.inline)
@@ -58,9 +62,11 @@ struct SavedPlacesScreen: View {
                 PlaceDetailScreen(placeID: placeID)
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") { dismiss() }
-                        .foregroundStyle(Color.coastalAqua)
+                if !embedded {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Done") { dismiss() }
+                            .foregroundStyle(Color.coastalAqua)
+                    }
                 }
             }
         }

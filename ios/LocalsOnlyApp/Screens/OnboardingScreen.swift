@@ -5,9 +5,9 @@ struct OnboardingScreen: View {
     @State private var currentPage = 0
 
     private let pages: [(icon: String, title: String, subtitle: String)] = [
-        ("magnifyingglass", "Explore Local Spots",
-         "Discover the best food, drinks, and coffee in San Diego — rated by real locals."),
-        ("slider.horizontal.3", "Rate What You Try",
+        ("trophy.fill", "Browse Local Rankings",
+         "See what locals are loving across food, drinks, and coffee in San Diego."),
+        ("plus.circle.fill", "Log What You Try",
          "Score your favorites, add photos, and build your personal taste profile."),
         ("person.2.fill", "Connect With Friends",
          "Follow friends, see their finds, and cosign the ratings you agree with.")

@@ -3,7 +3,8 @@ import SwiftUI
 enum Spacing {
     /// Extra bottom padding for scroll content above `CoastalTabBar` — the elevated FAB
     /// overlaps the layout bounds, so `safeAreaInset` alone under-reserves space.
-    static let tabBarScrollBottomInset: CGFloat = 52
+    /// Matches compact `CoastalTabBar` + elevated FAB overlap above scroll content.
+    static let tabBarScrollBottomInset: CGFloat = 44
 
     static let xxs: CGFloat = 4
     static let xs: CGFloat = 8

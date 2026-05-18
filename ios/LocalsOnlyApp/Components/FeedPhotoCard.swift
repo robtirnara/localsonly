@@ -12,15 +12,10 @@ struct FeedPhotoCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             ZStack(alignment: .bottomTrailing) {
-                Color.coastalSand.opacity(0.06)
-                    .frame(height: 200)
-                    .overlay {
-                        imageContent
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                FeedHeroPhoto(photoURL: photoURL, category: category, cornerRadius: 14)
 
                 Text(String(format: "%.1f", score))
-                    .font(.system(.subheadline, design: .default, weight: .bold))
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, Spacing.sm)
                     .padding(.vertical, Spacing.xxs)
@@ -54,23 +49,5 @@ struct FeedPhotoCard: View {
 
     var accessibilityDescription: String {
         "\(itemName) at \(placeName), rated \(String(format: "%.1f", score)) by \(actorName)"
-    }
-
-    @ViewBuilder
-    private var imageContent: some View {
-        if let photoURL, !photoURL.isEmpty, let url = URL(string: photoURL) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                default:
-                    PlaceholderHeroView(category: category)
-                }
-            }
-        } else {
-            PlaceholderHeroView(category: category)
-        }
     }
 }

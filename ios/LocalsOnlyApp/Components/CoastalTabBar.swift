@@ -1,49 +1,50 @@
 import SwiftUI
 
-/// Bottom navigation matching AIDesigner HTML reference canvases:
-/// - Inactive: `text-gray-400`, Phosphor-style **bold** icons (`ph-bold`), `text-[11px] font-bold`, `gap-1` between icon and label.
-/// - Selected: `text-coastal-sunset` (`#f97316`), **filled** icons (`ph-fill`).
-/// - Center: elevated `w-16 h-16` FAB `bg-coastal-dark`, white filled palm, `border-4 border-coastal-sand`, shadow (no caption under FAB).
+/// Bottom navigation matching AIDesigner `user-feed` HTML shell:
+/// - Bar: `bg-card/95` + blur, `rounded-t-[40px]`, `shadow-[0_-10px_40px_rgba(0,0,0,0.05)]`, `pt-4 pb-8 px-6`.
+/// - Tabs: `text-xs font-bold`; active `text-ocean` + filled SF Symbols; inactive `text-concrete` + bold weight.
+/// - FAB: `absolute -top-12`, `w-16 h-16 bg-sky`, `border-4 border-sand`, `ph-bold ph-plus text-ocean` (no caption).
+/// Tab routing unchanged: Home→`.feed`, Explore→`.ranks`, FAB→`.rate`, Saved→`.saved`, Profile→`.profile`.
 struct CoastalTabBar: View {
     @Binding var selection: SessionManager.AppTab
 
-    /// Tailwind `gray-400` (#9ca3af)
-    private let inactiveColor = Color(red: 156 / 255, green: 163 / 255, blue: 175 / 255)
-
+    private let activeColor = Color.feedCanvasOcean
+    private let inactiveColor = Color.feedCanvasConcrete
     private let iconPointSize: CGFloat = 22
-    private let labelPointSize: CGFloat = 11
+    private let labelPointSize: CGFloat = 10
+
+    /// Tighter than canvas `rounded-t-[40px]` so the strip reads smaller on device.
+    private let barTopRadius: CGFloat = 28
 
     var body: some View {
-        VStack(spacing: 0) {
-            Rectangle()
-                .fill(Color.coastalInk.opacity(0.08))
-                .frame(height: 1)
-
-            ZStack(alignment: .bottom) {
-                HStack(alignment: .bottom, spacing: 0) {
-                    tabColumn(tab: .feed, title: "Feed", outline: "house", filled: "house.fill")
-                    tabColumn(tab: .ranks, title: "Ranks", outline: "trophy", filled: "trophy.fill")
-                    Color.clear
-                        .frame(maxWidth: .infinity)
-                    tabColumn(tab: .map, title: "Map", outline: "safari", filled: "safari.fill")
-                    tabColumn(tab: .profile, title: "Profile", outline: "person", filled: "person.fill")
-                }
-
-                logFAB
-                    .offset(y: -20)
+        ZStack(alignment: .bottom) {
+            HStack(alignment: .bottom, spacing: 0) {
+                tabColumn(tab: .feed, title: "Home", outline: "house", filled: "house.fill")
+                tabColumn(tab: .ranks, title: "Explore", outline: "safari", filled: "safari.fill")
+                Color.clear
+                    .frame(maxWidth: .infinity)
+                tabColumn(tab: .saved, title: "Saved", outline: "bookmark", filled: "bookmark.fill")
+                tabColumn(tab: .profile, title: "Profile", outline: "person", filled: "person.fill")
             }
-            .padding(.horizontal, 24)
-            /// Tighter than reference `pt-4` so the strip sits lower and steals less from scroll content.
-            .padding(.top, 10)
-            /// Reference used `pb-8` (32pt); that sat labels too high — hug bottom safe/home area instead.
-            .padding(.bottom, 8)
+
+            rateFAB
+                .offset(y: -22)
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 6)
+        .padding(.bottom, 6)
         .background {
-            UnevenRoundedRectangle(cornerRadii: RectangleCornerRadii(topLeading: 32, bottomLeading: 0, bottomTrailing: 0, topTrailing: 32))
-                .fill(Color.coastalTabBar)
+            let radii = RectangleCornerRadii(topLeading: barTopRadius, bottomLeading: 0, bottomTrailing: 0, topTrailing: barTopRadius)
+            let shape = UnevenRoundedRectangle(cornerRadii: radii, style: .continuous)
+            shape
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    shape.fill(Color.feedCanvasCard.opacity(0.52))
+                }
+                .clipShape(shape)
                 .ignoresSafeArea(edges: .bottom)
         }
-        .shadow(color: Color.coastalCoral.opacity(0.10), radius: 16, x: 0, y: -8)
+        .shadow(color: Color.black.opacity(0.05), radius: 12, x: 0, y: -6)
         /// `safeAreaInset` often proposes **unbounded vertical height**; `ZStack` expands to fill it — hug intrinsic height only.
         .fixedSize(horizontal: false, vertical: true)
     }
@@ -53,35 +54,35 @@ struct CoastalTabBar: View {
         return Button {
             selection = tab
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Image(systemName: active ? filled : outline)
                     .font(.system(size: iconPointSize, weight: .bold))
-                    .foregroundStyle(active ? Color.coastalCoral : inactiveColor)
+                    .foregroundStyle(active ? activeColor : inactiveColor)
                 Text(title)
-                    .font(.system(size: labelPointSize, weight: .bold))
-                    .foregroundStyle(active ? Color.coastalCoral : inactiveColor)
+                    .font(.system(size: labelPointSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(active ? activeColor : inactiveColor)
             }
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
     }
 
-    private var logFAB: some View {
+    private var rateFAB: some View {
         Button {
             selection = .rate
         } label: {
-            PalmTreeShape()
-                .fill(Color.white)
-                .frame(width: 30, height: 30)
+            Image(systemName: "plus")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(Color.feedCanvasOcean)
         }
         .buttonStyle(.plain)
-        .frame(width: 64, height: 64)
-        .background(Color.coastalInk, in: Circle())
+        .frame(width: 54, height: 54)
+        .background(Color.feedCanvasSky, in: Circle())
         .overlay(
             Circle()
-                .stroke(Color.coastalSand, lineWidth: 4)
+                .stroke(Color.feedCanvasSand, lineWidth: 3)
         )
-        .shadow(color: Color.coastalInk.opacity(0.35), radius: 12, y: 6)
-        .accessibilityLabel("Log spot")
+        .shadow(color: Color.black.opacity(0.1), radius: 10, y: 4)
+        .accessibilityLabel("Add review")
     }
 }

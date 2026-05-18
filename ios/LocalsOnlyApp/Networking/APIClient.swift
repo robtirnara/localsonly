@@ -85,6 +85,18 @@ final class APIClient {
         return response
     }
 
+    /// Debug / local only: requires backend `ALLOW_DEV_LOGIN=true` or Vapor `.development`.
+    func devLogin() async throws -> AuthVerifyCodeResponse {
+        let response: AuthVerifyCodeResponse = try await request(
+            method: "POST",
+            path: "/auth/dev-login",
+            body: Optional<String>.none,
+            authenticated: false
+        )
+        sessionStore.token = response.token
+        return response
+    }
+
     func eligibilityCheck(coarseAreaCode: String = "SanDiego") async throws -> EligibilityStatusResponse {
         try await request(
             method: "POST",
@@ -101,6 +113,11 @@ final class APIClient {
     func searchPlaces(query: String, city: String = "SanDiego") async throws -> [PlaceResponse] {
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         return try await request(method: "GET", path: "/places/search?q=\(encoded)&city=\(city)", authenticated: false)
+    }
+
+    func searchItemCategories(query: String) async throws -> [ItemCategoryResponse] {
+        let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        return try await request(method: "GET", path: "/item-categories/search?q=\(encoded)", authenticated: false)
     }
 
     func suggestPlace(name: String, neighborhood: String?, category: String, city: String?) async throws -> PlaceResponse {

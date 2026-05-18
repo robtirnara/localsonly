@@ -16,12 +16,31 @@ extension Color {
     static let coastalTextPrimary = Color(hex: 0x0F172A)
     static let coastalTextSecondary = Color(hex: 0x6B7280)
 
+    // AIDesigner profile / taste-map reference palette (mobile artifact parity).
+    static let adProfileInk = Color(hex: 0x1A1A1A)
+    static let adProfileMuted = Color(hex: 0x6B6B6B)
+    static let adProfileCoral = Color(hex: 0xE87556)
+    static let adProfileTeal = Color(hex: 0x3AAFA9)
+    static let adProfileSand = Color(hex: 0xE8DCC4)
+
     /// Primary ink / FAB background (slate-900).
     static let coastalInk = Color.vintageInk
 
     static let coastalStatusProvisional = Color(hex: 0xD69E2E)
     static let coastalStatusRestricted = Color(hex: 0xFC8181)
     static let coastalStatusSuccess = Color(hex: 0x48BB78)
+
+    /// Social feed canvas (`user-feed` / `get_canvas`) — Tailwind `extend.colors` from HTML reference.
+    static let feedCanvasSand = Color(hex: 0xF7F4EB)
+    static let feedCanvasOcean = Color(hex: 0x2C526A)
+    static let feedCanvasSky = Color(hex: 0x7FBDD6)
+    static let feedCanvasConcrete = Color(hex: 0x8E9AA1)
+    static let feedCanvasInk = Color(hex: 0x1F2937)
+    static let feedCanvasCard = Color(hex: 0xFFFFFF)
+    /// Hero placeholder / skeleton (`bg-gray-200`).
+    static let feedCanvasHeroPlaceholder = Color(hex: 0xE5E7EB)
+    /// Card action row top border (`border-gray-100`).
+    static let feedCanvasDivider = Color(hex: 0xF3F4F6)
 
     static func scoreColor(for score: Double) -> Color {
         switch score {

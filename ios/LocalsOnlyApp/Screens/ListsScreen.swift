@@ -186,7 +186,9 @@ struct ListDetailScreen: View {
                     } else {
                         LazyVGrid(columns: gridColumns, spacing: Spacing.md) {
                             ForEach(detail.items, id: \.placeID) { item in
-                                NavigationLink(value: item.placeID) {
+                                Button {
+                                    session.presentPlaceDetail(item.placeID)
+                                } label: {
                                     ImageTileCard(
                                         title: item.placeName,
                                         subtitle: [item.category.capitalized, item.neighborhood].compactMap { $0 }.joined(separator: " · "),
@@ -205,9 +207,6 @@ struct ListDetailScreen: View {
         }
         .navigationTitle(detail?.name ?? "List")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(for: UUID.self) { placeID in
-            PlaceDetailScreen(placeID: placeID)
-        }
         .task { await load() }
     }
 

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Grid tile for legacy Lists screen only.
 struct ImageTileCard: View {
     let title: String
     let subtitle: String
@@ -12,18 +13,15 @@ struct ImageTileCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-
             ZStack(alignment: .bottomTrailing) {
                 Color.coastalSand.opacity(0.06)
                     .aspectRatio(imageAspect, contentMode: .fit)
-                    .overlay {
-                        imageContent
-                    }
+                    .overlay { imageContent }
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                 if let score {
                     Text(String(format: "%.1f", score))
-                        .font(.system(.caption, design: .default, weight: .bold))
+                        .font(.system(.caption, design: .rounded, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, Spacing.xs)
                         .padding(.vertical, Spacing.xxs)
@@ -39,12 +37,10 @@ struct ImageTileCard: View {
                     .font(.cardTitle)
                     .foregroundStyle(Color.coastalTextPrimary)
                     .lineLimit(1)
-
                 Text(subtitle)
                     .font(.captionCopy)
                     .foregroundStyle(Color.coastalTextSecondary)
                     .lineLimit(1)
-
                 if let badgeText {
                     Text(badgeText)
                         .font(.microLabel)
@@ -60,9 +56,7 @@ struct ImageTileCard: View {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
+                    image.resizable().aspectRatio(contentMode: .fill)
                 default:
                     PlaceholderHeroView(category: category)
                 }

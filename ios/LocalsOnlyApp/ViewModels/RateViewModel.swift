@@ -10,6 +10,9 @@ final class RateViewModel: ObservableObject {
 
     @Published var itemName: String = ""
     @Published var itemCategory: String = ""
+    @Published var categoryResults: [ItemCategoryResponse] = []
+    @Published var isSearchingCategories = false
+
     @Published var score: Double = 8.5
     @Published var notes: String = ""
     @Published var privacy: String = "public"
@@ -19,19 +22,71 @@ final class RateViewModel: ObservableObject {
     @Published var selectedPhoto: PhotosPickerItem?
     @Published var photoData: Data?
 
+    @Published var selectedTags: Set<String> = []
+
+    private var placeSearchTask: Task<Void, Never>?
+    private var categorySearchTask: Task<Void, Never>?
+
     func searchPlaces(using api: APIClient) async throws {
+        let q = placeQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else {
+            placeResults = []
+            return
+        }
         isSearchingPlaces = true
         defer { isSearchingPlaces = false }
-        placeResults = try await api.searchPlaces(query: placeQuery)
+        placeResults = try await api.searchPlaces(query: q)
     }
 
-    @Published var selectedTags: Set<String> = []
+    func debouncePlaceSearch(using api: APIClient) {
+        placeSearchTask?.cancel()
+        let q = placeQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else {
+            placeResults = []
+            isSearchingPlaces = false
+            return
+        }
+        isSearchingPlaces = true
+        placeSearchTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            try? await searchPlaces(using: api)
+        }
+    }
+
+    func searchCategories(using api: APIClient) async throws {
+        let q = itemCategory.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else {
+            categoryResults = []
+            return
+        }
+        isSearchingCategories = true
+        defer { isSearchingCategories = false }
+        categoryResults = try await api.searchItemCategories(query: q)
+    }
+
+    func debounceCategorySearch(using api: APIClient) {
+        categorySearchTask?.cancel()
+        let q = itemCategory.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else {
+            categoryResults = []
+            isSearchingCategories = false
+            return
+        }
+        isSearchingCategories = true
+        categorySearchTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            try? await searchCategories(using: api)
+        }
+    }
 
     func resetDraft() {
         placeQuery = ""
         placeResults = []
         itemName = ""
         itemCategory = ""
+        categoryResults = []
         score = 8.5
         notes = ""
         privacy = "public"
@@ -81,6 +136,7 @@ final class RateViewModel: ObservableObject {
         selectedPhoto = nil
         photoData = nil
         selectedTags = []
+        categoryResults = []
         score = 5.0
         if let rank {
             return "This ranks #\(rank) out of your \(categoryRatings.count) \(effectiveCategory) ratings."

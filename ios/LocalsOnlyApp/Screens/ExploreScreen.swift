@@ -1,42 +1,55 @@
 import SwiftUI
 
 struct ExploreScreen: View {
-    @EnvironmentObject private var session: SessionManager
-    @StateObject private var vm = ExploreViewModel()
-    @State private var showingSuggestSheet = false
-    @State private var categoryFilter: String = "food"
-    @State private var searchMode: SearchMode = .items
-    @State private var itemResults: [ItemSearchResponse] = []
-    @State private var neighborhoods: [NeighborhoodResponse] = []
+    private enum ExploreSurface: String, CaseIterable {
+        case list = "List"
+        case map = "Map"
+    }
 
     enum SearchMode: String, CaseIterable {
         case places = "Places"
         case items = "Items"
     }
 
-    private let gridColumns = [
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12)
-    ]
+    @EnvironmentObject private var session: SessionManager
+    @StateObject private var vm = ExploreViewModel()
+    @State private var showingSuggestSheet = false
+    @State private var categoryFilter: String = "all"
+    @State private var searchMode: SearchMode = .places
+    @State private var itemResults: [ItemSearchResponse] = []
+    @State private var neighborhoods: [NeighborhoodResponse] = []
+    @State private var exploreSurface: ExploreSurface = .list
+    @State private var itemSearchTask: Task<Void, Never>?
+    @State private var didCompleteItemSearch = false
+    @State private var searchChromeVisible = false
+    @State private var emphasizeTrending = false
+
+    private let listHorizontalPadding: CGFloat = 16
+    private let listRowSpacing: CGFloat = 16
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .top) {
-                Color.coastalSand
-                    .ignoresSafeArea()
-
-                ScrollView {
-                    contentBody
-                        .padding(.top, 148)
-                        .padding(.bottom, Spacing.lg + Spacing.tabBarScrollBottomInset)
+            Group {
+                if exploreSurface == .map {
+                    ZStack(alignment: .top) {
+                        MapExploreView()
+                            .ignoresSafeArea(edges: .bottom)
+                        exploreMapHeaderChrome
+                    }
+                } else {
+                    ScrollView {
+                        contentBody
+                            .padding(.horizontal, listHorizontalPadding)
+                            .padding(.top, Spacing.xxs)
+                            .padding(.bottom, Spacing.md + Spacing.tabBarScrollBottomInset)
+                    }
+                    .scrollIndicators(.hidden)
+                    .background(Color.feedCanvasSand)
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        exploreListHeaderChrome
+                    }
                 }
-                .scrollIndicators(.hidden)
-
-                ranksHeader
             }
-                .navigationDestination(for: UUID.self) { placeID in
-                    PlaceDetailScreen(placeID: placeID)
-                }
                 .toolbar(.hidden, for: .navigationBar)
                 .sheet(isPresented: $showingSuggestSheet) {
                     suggestSheet
@@ -45,6 +58,7 @@ struct ExploreScreen: View {
                 }
         }
         .task {
+            await loadTopPlaces()
             await loadTrending()
             await loadNeighborhoods()
         }
@@ -69,15 +83,63 @@ struct ExploreScreen: View {
         }
     }
 
+    private var showsSearchChrome: Bool {
+        searchChromeVisible
+            || !vm.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || vm.hasSearched
+    }
+
+    private var exploreSurfacePicker: some View {
+        Picker("", selection: $exploreSurface) {
+            ForEach(ExploreSurface.allCases, id: \.self) { mode in
+                Text(mode.rawValue).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+        .tint(Color.feedCanvasOcean)
+    }
+
+    private var exploreOverflowMenu: some View {
+        Menu {
+            Button("Find dishes (trending)") {
+                searchMode = .items
+                searchChromeVisible = true
+            }
+            Button("Search places") {
+                searchMode = .places
+                searchChromeVisible = true
+            }
+            Button("Suggest a place") {
+                showingSuggestSheet = true
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(Color.feedCanvasOcean)
+                .frame(width: 40, height: 40)
+                .background(Color.feedCanvasCard)
+                .clipShape(Circle())
+                .shadow(color: Color.black.opacity(0.05), radius: 2, y: 1)
+        }
+        .accessibilityLabel("More explore options")
+    }
+
+    private var showTopLocalsDefault: Bool {
+        !vm.hasSearched
+            && vm.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && searchMode == .places
+    }
+
     private var contentBody: some View {
-        VStack(spacing: Spacing.md) {
-            if vm.isLoading {
-                LazyVGrid(columns: gridColumns, spacing: Spacing.md) {
-                    ForEach(0..<4, id: \.self) { _ in
-                        ImageTileShimmer()
-                    }
+        VStack(spacing: listRowSpacing) {
+            if vm.isLoadingTopPlaces && vm.topPlaces.isEmpty {
+                ForEach(0..<4, id: \.self) { _ in
+                    ImageTileShimmer()
                 }
-                .padding(.horizontal, 20)
+            } else if vm.isLoading && vm.hasSearched {
+                ForEach(0..<4, id: \.self) { _ in
+                    ImageTileShimmer()
+                }
             } else if searchMode == .items && !itemResults.isEmpty {
                 itemResultsGrid
             } else if searchMode == .places && !vm.places.isEmpty {
@@ -85,15 +147,22 @@ struct ExploreScreen: View {
                     neighborhoodPills
                 }
                 searchResultsGrid
-            } else if vm.hasSearched || (searchMode == .items && !itemResults.isEmpty) {
+            } else if vm.hasSearched && searchMode == .places && vm.places.isEmpty {
                 EmptyStateView(
                     title: "No results found",
-                    message: searchMode == .items
-                        ? "Try a different item like \"matcha\" or \"taco\"."
-                        : "Try a different search or add a new place.",
+                    message: "Try a different search or add a new place.",
                     icon: "magnifyingglass"
                 )
-                .padding(.horizontal, 20)
+            } else if searchMode == .items && didCompleteItemSearch && itemResults.isEmpty && !vm.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                EmptyStateView(
+                    title: "No results found",
+                    message: "Try a different item like \"matcha\" or \"taco\".",
+                    icon: "magnifyingglass"
+                )
+            } else if emphasizeTrending && !vm.filteredTrendingItems.isEmpty {
+                trendingSection
+            } else if showTopLocalsDefault && !vm.filteredTopPlaces(category: categoryFilter).isEmpty {
+                topLocalsRankedSection
             } else if !vm.filteredTrendingItems.isEmpty {
                 VStack(spacing: Spacing.sm) {
                     if !vm.trendingNeighborhoodFilters.isEmpty {
@@ -104,63 +173,80 @@ struct ExploreScreen: View {
             } else {
                 EmptyStateView(
                     title: "Find your local spots",
-                    message: "Search dishes, drinks, or switch to Places to find a venue.",
+                    message: "Browse top-ranked spots, open the map, or search from the menu.",
                     icon: "magnifyingglass"
                 )
-                .padding(.horizontal, 20)
             }
         }
-        .padding(.top, Spacing.md)
     }
 
-    private var ranksHeader: some View {
+    /// Canvas header: `Top Ranks 🌴`, category pills; List | Map + overflow kept for app IA.
+    private var exploreListHeaderChrome: some View {
         VStack(spacing: 0) {
-            VStack(spacing: Spacing.md) {
-                HStack {
-                    HStack(spacing: Spacing.xs) {
-                        PalmTreeShape()
-                            .fill(Color.coastalInk)
-                            .frame(width: 24, height: 28)
-                        Text("The Local List")
-                            .font(.system(size: 24, weight: .heavy, design: .rounded))
-                            .tracking(-0.6)
-                            .foregroundStyle(Color.coastalInk)
-                    }
+            HStack(alignment: .center, spacing: 8) {
+                Text("Top Ranks 🌴")
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.feedCanvasInk)
+                    .tracking(-0.5)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
 
-                    Spacer()
+                Spacer(minLength: 8)
 
-                    Button {
-                        session.selectedTab = .map
-                    } label: {
-                        Image(systemName: "map")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(Color.coastalAqua)
-                            .frame(width: 40, height: 40)
-                            .background(Color.coastalFoam)
-                            .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.04), radius: 3, y: 1)
-                    }
-                    .accessibilityLabel("Open map")
-                }
-                .padding(.leading, 4)
+                exploreSurfacePicker
+                    .frame(maxWidth: 128)
 
-                searchBar
+                exploreOverflowMenu
             }
-            .padding(.top, 14)
-            .padding(.horizontal, 20)
-            .padding(.bottom, Spacing.md)
-            .background(Color.coastalSand.opacity(0.95))
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(Color.orange.opacity(0.05))
-                    .frame(height: 2)
+            .padding(.horizontal, 24)
+            .padding(.top, 6)
+
+            if showsSearchChrome {
+                searchBar
+                    .padding(.horizontal, 24)
+                    .padding(.top, 10)
             }
 
             rankCategoryStrip
-                .background(Color.coastalSand.opacity(0.95))
-                .shadow(color: .black.opacity(0.02), radius: 10, y: 4)
+                .padding(.top, showsSearchChrome ? 8 : 12)
         }
-        .background(Color.coastalSand.opacity(0.95))
+        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity)
+        .background {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay(Color.feedCanvasSand.opacity(0.92))
+                .ignoresSafeArea(edges: .top)
+        }
+    }
+
+    private var exploreMapHeaderChrome: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 8) {
+                Text("Top Ranks 🌴")
+                    .font(.system(size: 24, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Color.feedCanvasInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+
+                Spacer(minLength: 8)
+
+                exploreSurfacePicker
+                    .frame(maxWidth: 128)
+
+                exploreOverflowMenu
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 10)
+            .background {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .overlay(Color.feedCanvasSand.opacity(0.92))
+                    .ignoresSafeArea(edges: .top)
+            }
+
+            Spacer(minLength: 0)
+        }
     }
 
     // MARK: - Search Bar
@@ -170,11 +256,11 @@ struct ExploreScreen: View {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(Color.gray.opacity(0.75))
+                    .foregroundStyle(Color.feedCanvasConcrete)
 
                 TextField(searchMode == .items ? "Tacos, matcha, pancakes…" : "Search place name…", text: $vm.query)
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .foregroundStyle(Color.coastalTextPrimary)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.feedCanvasInk)
                     .onSubmit {
                         if searchMode == .items {
                             Task { await runItemSearch() }
@@ -185,10 +271,13 @@ struct ExploreScreen: View {
             }
             .padding(.leading, Spacing.md)
             .padding(.trailing, Spacing.sm)
-            .padding(.vertical, 13)
-            .background(Color.white.opacity(0.8))
+            .padding(.vertical, 12)
+            .background(Color.feedCanvasCard)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: .black.opacity(0.03), radius: 1, y: 1)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.black.opacity(0.05), lineWidth: 1)
+            )
 
             Button {
                 withAnimation(.easeInOut(duration: 0.18)) {
@@ -197,56 +286,58 @@ struct ExploreScreen: View {
             } label: {
                 Image(systemName: "slider.horizontal.3")
                     .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(Color.gray.opacity(0.85))
-                    .frame(width: 48, height: 46)
-                    .background(Color.white.opacity(0.8))
+                    .foregroundStyle(Color.feedCanvasConcrete)
+                    .frame(width: 44, height: 44)
+                    .background(Color.feedCanvasCard)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.gray.opacity(0.10), lineWidth: 1)
+                            .stroke(Color.black.opacity(0.05), lineWidth: 1)
                     )
-                    .shadow(color: .black.opacity(0.03), radius: 2, y: 1)
             }
             .accessibilityLabel("Toggle search mode")
         }
+        .padding(.bottom, 4)
     }
 
     private var rankCategoryStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.sm) {
-                categoryButton(id: "food", icon: "fork.knife", title: "Top Eats")
-                categoryButton(id: "coffee", icon: "cup.and.saucer.fill", title: "Surf Coffee")
-                categoryButton(id: "drink", icon: "wineglass.fill", title: "Tiki Bars")
-                categoryButton(id: "seafood", icon: "fish.fill", title: "Seafood")
+            HStack(spacing: 12) {
+                topLocalsCategoryButton(id: "all", label: "All Spots")
+                topLocalsCategoryButton(id: "food", label: "Tacos 🌮")
+                topLocalsCategoryButton(id: "coffee", label: "Coffee ☕️")
+                topLocalsCategoryButton(id: "drink", label: "Margs 🍹")
+                topLocalsCategoryButton(id: "seafood", label: "Seafood 🐟")
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, Spacing.sm)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 8)
         }
     }
 
-    private func categoryButton(id: String, icon: String, title: String) -> some View {
+    private func topLocalsCategoryButton(id: String, label: String) -> some View {
         let isSelected = categoryFilter == id
         return Button {
             withAnimation(.easeInOut(duration: 0.2)) {
                 categoryFilter = id
+                emphasizeTrending = false
             }
         } label: {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: isSelected ? .bold : .semibold))
-                Text(title)
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-            }
-            .foregroundStyle(isSelected ? Color.white : Color.gray.opacity(0.82))
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.xs)
-            .background(isSelected ? Color.coastalInk : Color.white)
-            .clipShape(Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(Color.gray.opacity(isSelected ? 0 : 0.10), lineWidth: 1)
-            )
-            .shadow(color: isSelected ? Color.coastalInk.opacity(0.20) : .black.opacity(0.04), radius: isSelected ? 6 : 3, y: isSelected ? 3 : 1)
+            Text(label)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(isSelected ? Color.white : Color.feedCanvasConcrete)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(isSelected ? Color.feedCanvasOcean : Color.feedCanvasCard)
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(Color.black.opacity(isSelected ? 0 : 0.05), lineWidth: 1)
+                )
+                .shadow(
+                    color: Color.black.opacity(isSelected ? 0.12 : 0.05),
+                    radius: isSelected ? 6 : 2,
+                    y: isSelected ? 3 : 1
+                )
         }
         .buttonStyle(.plain)
     }
@@ -283,7 +374,22 @@ struct ExploreScreen: View {
         }
     }
 
-    // MARK: - Neighborhoods Grid
+    private var topLocalsRankedSection: some View {
+        LazyVStack(spacing: listRowSpacing) {
+            ForEach(Array(vm.filteredTopPlaces(category: categoryFilter).enumerated()), id: \.element.placeID) { index, place in
+                TopLocalPlaceRankRow(rank: index + 1, place: place)
+            }
+
+            ExploreHiddenGemsCard {
+                emphasizeTrending = true
+                searchChromeVisible = false
+                vm.query = ""
+                vm.hasSearched = false
+                Task { await loadTrending() }
+            }
+            .padding(.top, 8)
+        }
+    }
 
     private var neighborhoodsGrid: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -363,7 +469,6 @@ struct ExploreScreen: View {
                     }
             }
         }
-        .padding(.horizontal, Spacing.md)
     }
 
     // MARK: - Item Results Grid
@@ -374,40 +479,36 @@ struct ExploreScreen: View {
                 ExploreItemRankRow(rank: nil, item: item)
             }
         }
-        .padding(.horizontal, Spacing.md)
     }
 
     // MARK: - Trending
 
     private var trendingSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
+        VStack(alignment: .leading, spacing: listRowSpacing) {
             HStack(alignment: .center) {
                 HStack(spacing: 6) {
                     Image(systemName: "flame.fill")
-                        .foregroundStyle(Color.coastalCoral)
+                        .foregroundStyle(Color.feedCanvasOcean)
                         .font(.system(size: 20, weight: .bold))
                     Text("Trending nearby")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.coastalInk)
+                        .foregroundStyle(Color.feedCanvasInk)
                 }
                 Spacer()
                 Text("Updated Today")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.gray.opacity(0.75))
+                    .foregroundStyle(Color.feedCanvasConcrete)
                     .padding(.horizontal, Spacing.xs)
                     .padding(.vertical, 4)
-                    .background(Color.gray.opacity(0.10))
+                    .background(Color.feedCanvasSky.opacity(0.2))
                     .clipShape(Capsule())
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, Spacing.xs)
 
-            LazyVStack(spacing: Spacing.md) {
+            LazyVStack(spacing: listRowSpacing) {
                 ForEach(Array(vm.filteredTrendingItems.enumerated()), id: \.element.id) { index, item in
                     ExploreItemRankRow(rank: index + 1, item: item)
                 }
             }
-            .padding(.horizontal, 20)
         }
     }
 
@@ -456,6 +557,14 @@ struct ExploreScreen: View {
 
     // MARK: - Helpers
 
+    private func loadTopPlaces() async {
+        do {
+            try await vm.loadTopPlaces(using: session.api)
+        } catch {
+            session.showError(error.localizedDescription)
+        }
+    }
+
     private func runSearch() async {
         do {
             try await vm.search(using: session.api)
@@ -466,7 +575,8 @@ struct ExploreScreen: View {
 
     private func loadTrending() async {
         do {
-            try await vm.loadTrending(using: session.api, dishFilter: categoryFilter)
+            let dishFilter: String? = categoryFilter == "all" ? nil : categoryFilter
+            try await vm.loadTrending(using: session.api, dishFilter: dishFilter)
         } catch {
             session.showError(error.localizedDescription)
         }
@@ -478,13 +588,12 @@ struct ExploreScreen: View {
         } catch {}
     }
 
-    @State private var itemSearchTask: Task<Void, Never>?
-
     private func debounceItemSearch() {
         itemSearchTask?.cancel()
         let q = vm.query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else {
             itemResults = []
+            didCompleteItemSearch = false
             return
         }
         itemSearchTask = Task {
@@ -499,6 +608,7 @@ struct ExploreScreen: View {
         guard !q.isEmpty else { return }
         do {
             itemResults = try await session.api.searchByItem(query: q)
+            didCompleteItemSearch = true
         } catch {
             session.showError(error.localizedDescription)
         }
@@ -506,172 +616,135 @@ struct ExploreScreen: View {
 }
 
 private struct ExploreItemRankRow: View {
-    /// When non-nil, shows Local List rank styling (badges for top 3).
     let rank: Int?
     let item: ItemSearchResponse
+    @EnvironmentObject private var session: SessionManager
 
     var body: some View {
-        NavigationLink(value: item.placeID) {
-            ZStack(alignment: .topLeading) {
-                HStack(alignment: .center, spacing: Spacing.md) {
-                    if let rank, rank > 3 {
-                        Text("\(rank)")
-                            .font(.system(size: 16, weight: .heavy, design: .rounded))
-                            .foregroundStyle(Color.gray.opacity(0.72))
-                            .frame(width: 24)
-                            .padding(.trailing, -Spacing.xs)
-                    }
+        Button {
+            session.presentPlaceDetail(item.placeID)
+        } label: {
+            ZStack(alignment: .leading) {
+                if rank == 1 {
+                    Color.feedCanvasSky
+                        .frame(width: 8)
+                }
 
-                    thumbnail
+                HStack(alignment: .center, spacing: 16) {
+                    itemThumbnail
 
                     VStack(alignment: .leading, spacing: 0) {
-                        HStack(alignment: .top, spacing: Spacing.xs) {
-                            Text(item.itemName)
-                                .font(.system(size: 17, weight: .bold, design: .rounded))
-                                .foregroundStyle(Color.coastalInk)
-                                .lineSpacing(0)
-                                .multilineTextAlignment(.leading)
-                                .lineLimit(2)
-                            Spacer(minLength: Spacing.xs)
-                            scorePill(item.averageScore)
-                        }
+                        Text(item.itemName)
+                            .font(.system(size: 20, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Color.feedCanvasInk)
+                            .lineLimit(2)
 
                         Text(item.placeName)
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Color.gray.opacity(0.72))
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.feedCanvasConcrete)
                             .padding(.top, 2)
+                            .padding(.bottom, 8)
 
-                        Text(locationLine)
-                            .font(.system(size: 12, weight: .medium, design: .rounded))
-                            .foregroundStyle(Color.gray.opacity(0.65))
-                            .padding(.top, 2)
-
-                        Text("\"\(pullQuote)\"")
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
-                            .foregroundStyle(Color.gray.opacity(0.88))
-                            .lineSpacing(2)
-                            .lineLimit(2)
-                            .padding(.top, Spacing.xs)
+                        HStack {
+                            ExploreScorePill(score: item.averageScore)
+                            Spacer(minLength: 8)
+                            Text("\(item.ratingsCount) ratings")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color.feedCanvasConcrete)
+                        }
                     }
+                    .padding(.vertical, 8)
                 }
-                .padding(Spacing.sm)
-
-                if let rank, rank <= 3 {
-                    Text("#\(rank)")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.white)
-                        .frame(width: 48, height: 48, alignment: .bottomTrailing)
-                        .padding(.trailing, Spacing.xs)
-                        .padding(.bottom, Spacing.xs)
-                        .background(rankAccent(rank))
-                        .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.14), radius: 4, y: 2)
-                        .offset(x: -16, y: -16)
-                        .zIndex(1)
-                }
+                .padding(.leading, rank == 1 ? 16 : 8)
+                .padding(.trailing, 24)
+                .padding(.vertical, 8)
             }
-            .background(Color.coastalCard)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .background(Color.feedCanvasCard)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Color.orange.opacity(0.05), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(Color.black.opacity(0.05), lineWidth: 1)
             )
-            .shadow(color: Color.coastalInk.opacity(0.04), radius: 20, y: 4)
+            .shadow(color: Color.black.opacity(0.05), radius: 2, y: 1)
         }
         .buttonStyle(.plain)
     }
 
-    private var locationLine: String {
-        item.neighborhood ?? "Nearby"
-    }
-
-    private var pullQuote: String {
-        let avg = String(format: "%.1f", item.averageScore)
-        return "\(avg) from \(item.ratingsCount) local ratings · \(item.placeName)."
-    }
-
-    private func rankAccent(_ rank: Int) -> Color {
-        switch rank {
-        case 1: return Color(red: 0.96, green: 0.82, blue: 0.25)
-        case 2: return Color(red: 0.78, green: 0.78, blue: 0.78)
-        default: return Color.coastalCoral
-        }
-    }
-
-    private func scorePill(_ score: Double) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: "star.fill")
-                .font(.system(size: 10))
-                .foregroundStyle(Color.yellow.opacity(0.95))
-            Text(String(format: "%.1f", score))
-                .font(.system(size: 12, weight: .bold, design: .rounded))
-                .foregroundStyle(Color.coastalInk)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.gray.opacity(0.08), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
-    }
-
-    private var thumbnail: some View {
-        Group {
-            if let urlString = item.coverPhotoURL, let u = URL(string: urlString) {
-                AsyncImage(url: u) { phase in
-                    switch phase {
-                    case .success(let img):
-                        img
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    default:
-                        Color.coastalFoam
-                            .overlay(Image(systemName: "fork.knife").foregroundStyle(Color.coastalAqua))
+    @ViewBuilder
+    private var itemThumbnail: some View {
+        ZStack(alignment: .topLeading) {
+            Group {
+                if let urlString = item.coverPhotoURL, let url = URL(string: urlString) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        default:
+                            Color.feedCanvasHeroPlaceholder
+                        }
                     }
+                } else {
+                    Color.feedCanvasHeroPlaceholder
                 }
-            } else {
-                Color.coastalFoam
-                    .overlay(Image(systemName: "fork.knife").foregroundStyle(Color.coastalAqua))
+            }
+            .frame(width: 96, height: 96)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+            if let rank {
+                Text("#\(rank)")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .frame(width: 28, height: 28)
+                    .background(Color.black.opacity(0.5))
+                    .clipShape(Circle())
+                    .padding(4)
             }
         }
-        .frame(width: 96, height: 96)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
     }
 }
 
 private struct ExploreRankSearchRow: View {
     let rank: Int
     let place: PlaceResponse
+    @EnvironmentObject private var session: SessionManager
 
     var body: some View {
-        NavigationLink(value: place.id) {
-            HStack(spacing: 12) {
-                Text("\(rank)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color.coastalTextSecondary)
-                    .frame(width: 22, alignment: .center)
-                thumbnail
+        Button {
+            session.presentPlaceDetail(place.id)
+        } label: {
+            HStack(alignment: .center, spacing: 16) {
+                ZStack(alignment: .topLeading) {
+                    thumbnail
+                    Text("#\(rank)")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .frame(width: 24, height: 24)
+                        .background(Color.black.opacity(0.5))
+                        .clipShape(Circle())
+                        .padding(3)
+                }
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text(place.name)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(Color.coastalTextPrimary)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.feedCanvasInk)
+                        .lineLimit(2)
                     Text(place.neighborhood ?? place.city)
-                        .font(.captionCopy)
-                        .foregroundStyle(Color.coastalTextSecondary)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color.feedCanvasConcrete)
                 }
+
                 Spacer(minLength: 8)
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
-            .background(Color.coastalCard)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color.feedCanvasCard)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Color.orange.opacity(0.06), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(Color.black.opacity(0.05), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -679,22 +752,22 @@ private struct ExploreRankSearchRow: View {
 
     private var thumbnail: some View {
         Group {
-            if let urlString = place.coverPhotoURL, let u = URL(string: urlString) {
-                AsyncImage(url: u) { phase in
+            if let urlString = place.coverPhotoURL, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
                     switch phase {
-                    case .success(let img):
-                        img
+                    case .success(let image):
+                        image
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                     default:
-                        Color.coastalFoam
+                        Color.feedCanvasHeroPlaceholder
                     }
                 }
             } else {
-                Color.coastalFoam
+                Color.feedCanvasHeroPlaceholder
             }
         }
-        .frame(width: 56, height: 56)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .frame(width: 72, height: 72)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }

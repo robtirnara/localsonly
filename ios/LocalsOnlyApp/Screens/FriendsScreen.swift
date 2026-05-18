@@ -44,9 +44,6 @@ struct FriendsScreen: View {
                         .foregroundStyle(Color.coastalAqua)
                 }
             }
-            .navigationDestination(for: UserNavigationID.self) { nav in
-                UserProfileScreen(userID: nav.id)
-            }
         }
         .task {
             await loadData()
@@ -65,7 +62,9 @@ struct FriendsScreen: View {
                 )
             } else {
                 ForEach(friends) { friend in
-                    NavigationLink(value: UserNavigationID(id: friend.userID)) {
+                    Button {
+                        session.presentUserProfile(friend.userID)
+                    } label: {
                         friendRow(name: friend.displayName, avatar: friend.avatarURL, city: friend.homeCity, userID: friend.userID)
                     }
                     .buttonStyle(.plain)

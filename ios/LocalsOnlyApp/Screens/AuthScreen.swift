@@ -1,11 +1,9 @@
 import SwiftUI
 
 enum AuthStep: CaseIterable {
-    case welcome
-    case phone
-    case otp
-    case displayName
-    case inviteCode
+    case gateway
+    case profileSetup
+    case loginOtp
 }
 
 struct AuthScreen: View {
@@ -13,46 +11,55 @@ struct AuthScreen: View {
 
     @AppStorage("hasCompletedLaunchOnboarding") private var hasCompletedLaunchOnboarding = false
 
-    @State private var step: AuthStep = .welcome
+    @State private var step: AuthStep = .gateway
+    @State private var gatewayMode: AccountGatewayMode = .signUp
     @State private var isLoading = false
 
     var body: some View {
-        VStack(spacing: Spacing.lg) {
-            Spacer(minLength: Spacing.xl)
+        ZStack {
+            Group {
+                if step == .gateway {
+                    Color.clear
+                } else if step == .profileSetup {
+                    Color(hex: 0xFFF6ED)
+                } else {
+                    Color.coastalBackground
+                }
+            }
+            .ignoresSafeArea()
 
-            stepContent
-                .frame(maxWidth: .infinity)
-                .transition(
-                    .asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .leading).combined(with: .opacity)
+            VStack(spacing: 0) {
+                stepContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .transition(
+                        .asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        )
                     )
-                )
 
-            Spacer()
-
-            if step != .welcome {
-                stepIndicator
+                if step != .gateway && step != .profileSetup {
+                    stepIndicator
+                        .padding(.bottom, Spacing.lg)
+                }
             }
         }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.bottom, Spacing.xl)
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: step)
         .onAppear {
             if hasCompletedLaunchOnboarding {
-                step = .phone
+                step = .gateway
             }
         }
         .onChange(of: hasCompletedLaunchOnboarding) { _, completed in
             if completed {
-                step = .phone
+                step = .gateway
             }
         }
     }
 
     private var stepIndicator: some View {
         HStack(spacing: Spacing.xs) {
-            ForEach(Array(AuthStep.allCases.dropFirst()), id: \.self) { s in
+            ForEach(Array(AuthStep.allCases.filter { $0 != .gateway && $0 != .profileSetup }), id: \.self) { s in
                 Capsule()
                     .fill(s == step ? Color.coastalAqua : Color.coastalTextSecondary.opacity(0.2))
                     .frame(width: s == step ? 24 : 8, height: 4)
@@ -64,81 +71,55 @@ struct AuthScreen: View {
     @ViewBuilder
     private var stepContent: some View {
         switch step {
-        case .welcome:
-            welcomeStep
-        case .phone:
-            phoneStep
-        case .otp:
-            otpStep
-        case .displayName:
-            displayNameStep
-        case .inviteCode:
-            inviteCodeStep
-        }
-    }
-
-    private var welcomeStep: some View {
-        VStack(spacing: Spacing.lg) {
-            VStack(spacing: Spacing.xs) {
-                BrandLockupView(compact: false)
-
-                Text("locals contribute. tourists browse.")
-                    .font(.bodyCopy)
-                    .foregroundStyle(Color.coastalSand)
-                    .multilineTextAlignment(.center)
-            }
-
-            GlassCard {
-                VStack(spacing: Spacing.md) {
-                    Text("Find the real local spots and add your own takes.")
-                        .font(.bodyCopy)
-                        .foregroundStyle(Color.coastalTextSecondary)
-                        .multilineTextAlignment(.center)
-
-                    PrimaryButton(title: "get started") {
-                        goTo(.phone)
-                    }
-                }
-            }
-        }
-    }
-
-    private var phoneStep: some View {
-        VStack(spacing: Spacing.md) {
-            Text("what's your number?")
-                .font(.sectionTitle)
-                .foregroundStyle(Color.coastalTextPrimary)
-
-            GlassCard {
-                VStack(spacing: Spacing.md) {
-                    TextField("+1 555 123 4567", text: $session.phoneE164)
-                        .foregroundStyle(Color.coastalTextPrimary)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.phonePad)
-                        .textContentType(.telephoneNumber)
-                        .padding()
-                        .background(Color.coastalCard)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                    PrimaryButton(title: "send code", isLoading: isLoading) {
-                        Task {
-                            isLoading = true
-                            let ok = await session.sendCode()
-                            isLoading = false
-                            if ok { goTo(.otp) }
+        case .gateway:
+            AccountGatewayView(
+                mode: $gatewayMode,
+                phoneE164: $session.phoneE164,
+                onSignUp: {
+                    goTo(.profileSetup)
+                },
+                onSendCode: {
+                    Task {
+                        isLoading = true
+                        let ok = await session.sendCode()
+                        isLoading = false
+                        if ok {
+                            goTo(.loginOtp)
                         }
                     }
-
-                    SecondaryButton(title: "back") {
-                        goTo(.welcome)
-                    }
+                },
+                onAppleSSO: {
+                    session.showInfo("Sign in with Apple — coming soon")
+                },
+                onGoogleSSO: {
+                    session.showInfo("Sign in with Google — coming soon")
+                }
+            )
+            .disabled(isLoading)
+            .overlay {
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(1.2)
                 }
             }
+
+        case .profileSetup:
+            ProfileSetupScreen(
+                onDismiss: {
+                    goTo(.gateway)
+                },
+                onProceedToVerifyLocal: {
+                    goTo(.gateway)
+                }
+            )
+            .environmentObject(session)
+
+        case .loginOtp:
+            loginOtpStep
         }
     }
 
-    private var otpStep: some View {
+    private var loginOtpStep: some View {
         VStack(spacing: Spacing.md) {
             Text("enter the code")
                 .font(.sectionTitle)
@@ -160,74 +141,12 @@ struct AuthScreen: View {
                         .background(Color.coastalCard)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                    PrimaryButton(title: "next") {
+                    PrimaryButton(title: "next", isLoading: isLoading) {
                         let code = session.otpCode.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !code.isEmpty else {
                             session.showError("Enter the verification code")
                             return
                         }
-                        goTo(.displayName)
-                    }
-
-                    SecondaryButton(title: "back") {
-                        goTo(.phone)
-                    }
-                }
-            }
-        }
-    }
-
-    private var displayNameStep: some View {
-        VStack(spacing: Spacing.md) {
-            Text("what should we call you?")
-                .font(.sectionTitle)
-                .foregroundStyle(Color.coastalTextPrimary)
-
-            GlassCard {
-                VStack(spacing: Spacing.md) {
-                    TextField("your name", text: $session.displayName)
-                        .foregroundStyle(Color.coastalTextPrimary)
-                        .padding()
-                        .background(Color.coastalCard)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                    PrimaryButton(title: "continue") {
-                        guard !session.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                            session.showError("Enter a display name")
-                            return
-                        }
-                        goTo(.inviteCode)
-                    }
-
-                    SecondaryButton(title: "back") {
-                        goTo(.otp)
-                    }
-                }
-            }
-        }
-    }
-
-    private var inviteCodeStep: some View {
-        VStack(spacing: Spacing.md) {
-            Text("got an invite code?")
-                .font(.sectionTitle)
-                .foregroundStyle(Color.coastalTextPrimary)
-
-            Text("optional. test code: LOCALS2026")
-                .font(.captionCopy)
-                .foregroundStyle(Color.coastalTextSecondary)
-
-            GlassCard {
-                VStack(spacing: Spacing.md) {
-                    TextField("invite code", text: $session.inviteCode)
-                        .foregroundStyle(Color.coastalTextPrimary)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .padding()
-                        .background(Color.coastalCard)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                    PrimaryButton(title: "join localsonly", isLoading: isLoading) {
                         Task {
                             isLoading = true
                             _ = await session.verifyAndJoin()
@@ -235,17 +154,14 @@ struct AuthScreen: View {
                         }
                     }
 
-                    SecondaryButton(title: "skip invite code") {
-                        session.inviteCode = ""
-                        Task {
-                            isLoading = true
-                            _ = await session.verifyAndJoin()
-                            isLoading = false
-                        }
+                    SecondaryButton(title: "back") {
+                        goTo(.gateway)
                     }
                 }
             }
         }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.xl)
     }
 
     private func goTo(_ nextStep: AuthStep) {

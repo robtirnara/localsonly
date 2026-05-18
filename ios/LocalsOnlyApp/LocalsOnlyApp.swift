@@ -4,6 +4,7 @@ import UIKit
 @main
 struct LocalsOnlyApp: App {
     init() {
+        AppTypography.configure()
         Self.configureTabBarAppearance()
     }
 

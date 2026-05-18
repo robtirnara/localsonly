@@ -26,6 +26,7 @@ struct AppModules {
         ModerationModule(),
         UploadsModule(),
         TagsModule(),
+        ItemCategoriesModule(),
         BookmarksModule(),
         ListsModule(),
         CosignsModule(),

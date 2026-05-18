@@ -78,6 +78,7 @@ private func createRating(_ req: Request) async throws -> RatingModel {
     rating.isSuppressed = false
     rating.photoURL = payload.photoURL
     try await ratingRepo.save(rating, on: req.db)
+    try await ItemCategoryRegistry.register(rating.itemCategory, on: req.db)
 
     if let photoURL = payload.photoURL, !photoURL.isEmpty {
         if let place = try await PlaceModel.find(payload.placeID, on: req.db),
@@ -141,6 +142,9 @@ private func updateRating(_ req: Request) async throws -> RatingModel {
         rating.privacy = privacy
     }
     try await ratingRepo.save(rating, on: req.db)
+    if let itemCategory = payload.itemCategory {
+        try await ItemCategoryRegistry.register(itemCategory, on: req.db)
+    }
     return rating
 }
 

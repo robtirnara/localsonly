@@ -13,11 +13,13 @@ struct LoadingShimmer: View {
 }
 
 struct ImageTileShimmer: View {
+    var heroAspectRatio: CGFloat = 3.0 / 2.0
+
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.coastalTextSecondary.opacity(0.10))
-                .aspectRatio(3.0 / 2.0, contentMode: .fill)
+                .aspectRatio(heroAspectRatio, contentMode: .fill)
                 .overlay(alignment: .leading) {
                     shimmerGradient
                 }

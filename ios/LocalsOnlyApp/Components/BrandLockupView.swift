@@ -14,7 +14,7 @@ struct BrandLockupView: View {
                 .frame(width: 32, height: 40)
 
             Text("localsonly")
-                .font(.system(size: 20, weight: .heavy, design: .default))
+                .font(.system(size: 20, weight: .heavy, design: .rounded))
                 .foregroundStyle(Color.coastalInk)
 
             SeagullShape()

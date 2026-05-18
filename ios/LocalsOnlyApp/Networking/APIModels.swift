@@ -187,6 +187,19 @@ struct TagResponse: Codable, Identifiable {
     let displayName: String
 }
 
+struct ItemCategoryResponse: Codable, Identifiable {
+    var id: String { slug }
+    let slug: String
+    let displayName: String
+    let usageCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case slug
+        case displayName
+        case usageCount
+    }
+}
+
 struct PopularTagResponse: Codable {
     let slug: String
     let displayName: String
@@ -195,6 +208,19 @@ struct PopularTagResponse: Codable {
 
 struct AddTagsRequest: Codable {
     let tags: [String]
+}
+
+/// Single root slide-up for spot detail and public profile (swap in place; no stacked sheets).
+enum PresentedDetailSheet: Identifiable, Hashable {
+    case place(UUID)
+    case userProfile(UUID)
+
+    var id: String {
+        switch self {
+        case .place(let uuid): return "place-\(uuid.uuidString)"
+        case .userProfile(let uuid): return "profile-\(uuid.uuidString)"
+        }
+    }
 }
 
 struct UserNavigationID: Hashable {

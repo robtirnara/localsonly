@@ -4,6 +4,8 @@ import Foundation
 final class ExploreViewModel: ObservableObject {
     @Published var query: String = ""
     @Published var places: [PlaceResponse] = []
+    /// City-wide ranked places (Top Locals list / map pin source).
+    @Published var topPlaces: [PopularPlaceResponse] = []
     @Published var trendingItems: [ItemSearchResponse] = []
     @Published var isLoading = false
     @Published var hasSearched = false
@@ -13,6 +15,7 @@ final class ExploreViewModel: ObservableObject {
     @Published var suggestNeighborhood: String = ""
     @Published var suggestCategory: String = "food"
     @Published var isSuggesting = false
+    @Published var isLoadingTopPlaces = false
 
     private var debounceTask: Task<Void, Never>?
 
@@ -35,6 +38,26 @@ final class ExploreViewModel: ObservableObject {
     var filteredTrendingItems: [ItemSearchResponse] {
         guard let hood = selectedNeighborhood else { return trendingItems }
         return trendingItems.filter { $0.neighborhood == hood }
+    }
+
+    /// Top Locals category strip: `all`, `food`, `coffee`, `drink`, `seafood`.
+    func filteredTopPlaces(category: String) -> [PopularPlaceResponse] {
+        switch category {
+        case "all":
+            return topPlaces
+        case "coffee", "food", "seafood":
+            return topPlaces.filter { $0.category == "food" || $0.category == "both" }
+        case "drink":
+            return topPlaces.filter { $0.category == "drink" || $0.category == "both" }
+        default:
+            return topPlaces
+        }
+    }
+
+    func loadTopPlaces(using api: APIClient) async throws {
+        isLoadingTopPlaces = true
+        defer { isLoadingTopPlaces = false }
+        topPlaces = try await api.popularFeed()
     }
 
     func search(using api: APIClient) async throws {

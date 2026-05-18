@@ -37,10 +37,13 @@ struct DatabasePlaceRepository: PlaceRepository {
     }
 
     func search(nameQuery: String, city: String, on db: Database) async throws -> [PlaceModel] {
+        let trimmed = nameQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         var builder = PlaceModel.query(on: db).filter(\.$city == city)
-        if !nameQuery.isEmpty {
+        if !trimmed.isEmpty {
+            let pattern = "%\(trimmed)%"
             builder = builder.group(.or) { group in
-                group.filter(\.$name =~ nameQuery)
+                group.filter(\.$name, .custom("ILIKE"), pattern)
+                group.filter(\.$neighborhood, .custom("ILIKE"), pattern)
             }
         }
         return try await builder.sort(\.$name, .ascending).limit(25).all()

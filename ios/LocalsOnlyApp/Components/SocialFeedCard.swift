@@ -1,250 +1,283 @@
 import SwiftUI
 
-/// Social feed article card (reference: warm card, spot pill, dashed actions).
+// MARK: - `user-feed` canvas parity (get_canvas Social Feed HTML)
+
+private enum FeedCanvasMetrics {
+    static let cardCorner: CGFloat = 32
+    static let cardPadding: CGFloat = 20
+    static let heroCorner: CGFloat = 16
+    static let avatarSize: CGFloat = 48
+    static let toolbarIconCircle: CGFloat = 40
+}
+
+/// Five “wave” segments matching canvas `ph-waves` row (score is 0…10 across five slots).
+private struct FeedWavesRow: View {
+    let score: Double
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(0..<5, id: \.self) { index in
+                Image(systemName: "water.waves")
+                    .font(.system(size: 17))
+                    .foregroundStyle(segmentStyle(index: index))
+            }
+        }
+    }
+
+    private func segmentStyle(index: Int) -> Color {
+        let span = 10.0 / 5.0
+        let start = Double(index) * span
+        let t = min(1, max(0, (score - start) / span))
+        if t >= 0.92 { return Color.feedCanvasOcean }
+        if t >= 0.08 { return Color.feedCanvasOcean.opacity(0.55) }
+        return Color.feedCanvasOcean.opacity(0.22)
+    }
+}
+
+private struct FeedScoreBadge: View {
+    let score: Double
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(String(format: "%.1f", score))
+                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.feedCanvasInk)
+            FeedWavesRow(score: score)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color.feedCanvasCard.opacity(0.9))
+        .background(.ultraThinMaterial)
+        .clipShape(Capsule())
+        .shadow(color: Color.black.opacity(0.1), radius: 8, y: 4)
+    }
+}
+
+private struct FeedTimePill: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 14, weight: .bold, design: .rounded))
+            .foregroundStyle(Color.feedCanvasOcean)
+            .tracking(0.4)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(Color.feedCanvasSky.opacity(0.2))
+            .clipShape(Capsule())
+    }
+}
+
+/// Social feed article card (`user-feed`: header → 4:5 hero + bottom score badge → body → actions).
 struct SocialFeedCard: View {
     let event: FeedEventResponse
 
-    private var metaLine: String {
-        "\(event.createdAt.relativeString) · \(event.placeName)"
+    private var headerTime: String {
+        event.createdAt.relativeString
+    }
+
+    private var bodyCopy: String {
+        "\(event.itemName) at \(event.placeName) — \(String(format: "%.1f", event.score))/10 on localsonly."
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack(alignment: .center) {
-                DefaultAvatarView(variant: .forUser(event.actorUserID), size: 40)
-                    .overlay(Circle().stroke(Color.coastalAqua, lineWidth: 2))
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                DefaultAvatarView(variant: .forUser(event.actorUserID), size: FeedCanvasMetrics.avatarSize)
+                    .overlay(Circle().stroke(Color.feedCanvasSky, lineWidth: 2))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(event.actorDisplayName)
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(Color.coastalInk)
-                    Text(metaLine)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Color.coastalTextSecondary)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.feedCanvasInk)
+                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        Image(systemName: "mappin.and.ellipse")
+                            .font(.system(size: 13, weight: .bold))
+                        Text(event.placeName)
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(Color.feedCanvasConcrete)
                 }
-                Spacer()
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 20))
-                    .foregroundStyle(Color.coastalTextSecondary.opacity(0.5))
+
+                Spacer(minLength: 8)
+
+                FeedTimePill(text: headerTime)
             }
+            .padding(.bottom, 16)
 
-            HStack(spacing: 6) {
-                Image(systemName: "mappin.circle.fill")
-                    .font(.system(size: 12))
-                Text(event.placeName)
-                    .font(.system(size: 12, weight: .bold))
+            ZStack(alignment: .bottomLeading) {
+                FeedHeroPhoto(
+                    photoURL: event.photoURL,
+                    category: "food",
+                    cornerRadius: FeedCanvasMetrics.heroCorner,
+                    aspectRatio: 4.0 / 5.0
+                )
+
+                FeedScoreBadge(score: event.score)
+                    .padding(16)
             }
-            .foregroundStyle(Color.coastalAqua)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.coastalFoam)
-            .clipShape(Capsule())
+            .padding(.bottom, 16)
 
-            ZStack(alignment: .topTrailing) {
-                photoArea
-                    .frame(height: 256)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.black.opacity(0.05), lineWidth: 1)
-                    )
-
-                HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.yellow.opacity(0.95))
-                    Text(String(format: "%.1f", event.score))
-                        .font(.system(size: 14, weight: .heavy))
-                        .foregroundStyle(Color.coastalInk)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(.white.opacity(0.92))
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
-                .padding(12)
-            }
-
-            Text(event.itemName)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Color.coastalInk)
-
-            Text("Rated \(event.itemName.lowercased()) at \(event.placeName).")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Color.coastalTextSecondary.opacity(0.95))
-                .lineSpacing(3)
+            Text(bodyCopy)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.feedCanvasInk)
+                .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, 16)
 
-            HStack(spacing: Spacing.sm) {
-                vibeChip("Post-Surf", icon: "water.waves", tint: Color.orange.opacity(0.12), fg: Color.coastalCoral)
-                vibeChip("Outdoor", icon: "sun.max.fill", tint: Color.blue.opacity(0.1), fg: Color.blue)
-            }
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(Color.feedCanvasDivider)
+                    .frame(height: 1)
+                HStack(spacing: 24) {
+                    Label {
+                        Text("24")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                    } icon: {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 22))
+                    }
+                    .foregroundStyle(Color.feedCanvasOcean)
 
-            dashedDivider
+                    Label {
+                        Text("5")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                    } icon: {
+                        Image(systemName: "bubble.right")
+                            .font(.system(size: 22))
+                    }
+                    .foregroundStyle(Color.feedCanvasConcrete)
 
-            HStack {
-                HStack(spacing: Spacing.md) {
-                    Label("24", systemImage: "heart")
-                        .font(.system(size: 14, weight: .medium))
-                    Label("3", systemImage: "bubble.right")
-                        .font(.system(size: 14, weight: .medium))
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "bookmark")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Color.feedCanvasConcrete)
                 }
-                .foregroundStyle(Color.coastalTextSecondary)
-                Spacer()
-                Image(systemName: "bookmark")
-                    .font(.system(size: 20))
-                    .foregroundStyle(Color.coastalTextSecondary)
+                .padding(.top, 16)
             }
         }
-        .padding(Spacing.md)
-        .background(Color.coastalCard)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .padding(FeedCanvasMetrics.cardPadding)
+        .background(Color.feedCanvasCard)
+        .clipShape(RoundedRectangle(cornerRadius: FeedCanvasMetrics.cardCorner, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.orange.opacity(0.06), lineWidth: 1)
+            RoundedRectangle(cornerRadius: FeedCanvasMetrics.cardCorner, style: .continuous)
+                .stroke(Color.black.opacity(0.05), lineWidth: 1)
         )
-        .shadow(color: Color.coastalCoral.opacity(0.08), radius: 20, y: 10)
-    }
-
-    private var dashedDivider: some View {
-        Rectangle()
-            .stroke(style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
-            .foregroundStyle(Color.gray.opacity(0.2))
-            .frame(height: 1)
-            .padding(.vertical, 4)
-    }
-
-    private func vibeChip(_ title: String, icon: String, tint: Color, fg: Color) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 11))
-            Text(title)
-                .font(.system(size: 11, weight: .bold))
-        }
-        .foregroundStyle(fg)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(tint)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-
-    @ViewBuilder
-    private var photoArea: some View {
-        if let photoURL = event.photoURL, !photoURL.isEmpty, let url = URL(string: photoURL) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                default:
-                    PlaceholderHeroView(category: "food", height: 256)
-                }
-            }
-        } else {
-            PlaceholderHeroView(category: "food", height: 256)
-        }
+        .shadow(color: Color.black.opacity(0.05), radius: 2, y: 1)
     }
 }
 
 struct PopularSpotFeedCard: View {
     let place: PopularPlaceResponse
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "leaf.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(Color.coastalCoral)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Popular near you")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(Color.coastalInk)
-                    Text("Trending · \(place.ratingsCount) ratings")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Color.coastalTextSecondary)
-                }
-                Spacer()
-            }
-
-            HStack(spacing: 6) {
-                Image(systemName: "mappin.circle.fill")
-                Text(place.placeName)
-                    .font(.system(size: 12, weight: .bold))
-            }
-            .foregroundStyle(Color.coastalAqua)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.coastalFoam)
-            .clipShape(Capsule())
-
-            ZStack(alignment: .topTrailing) {
-                cover
-                    .frame(height: 256)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.yellow.opacity(0.95))
-                    Text(String(format: "%.1f", place.averageScore))
-                        .font(.system(size: 14, weight: .heavy))
-                        .foregroundStyle(Color.coastalInk)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(.white.opacity(0.92))
-                .clipShape(Capsule())
-                .padding(12)
-            }
-
-            Text(place.placeName)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Color.coastalInk)
-
-            Text("\(place.category.capitalized) · community signal on localsonly.")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Color.coastalTextSecondary)
-                .lineSpacing(3)
-
-            Rectangle()
-                .stroke(style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
-                .foregroundStyle(Color.gray.opacity(0.2))
-                .frame(height: 1)
-                .padding(.vertical, 4)
-
-            HStack {
-                Spacer()
-                Image(systemName: "bookmark")
-                    .font(.system(size: 20))
-                    .foregroundStyle(Color.coastalTextSecondary)
-            }
+    private var subline: String {
+        let cat = place.category.capitalized
+        if let n = place.neighborhood, !n.isEmpty {
+            return "\(cat) · \(n)"
         }
-        .padding(Spacing.md)
-        .background(Color.coastalCard)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.orange.opacity(0.06), lineWidth: 1)
-        )
-        .shadow(color: Color.coastalCoral.opacity(0.08), radius: 20, y: 10)
+        return "\(cat) · \(place.ratingsCount) ratings"
     }
 
-    @ViewBuilder
-    private var cover: some View {
-        if let urlString = place.coverPhotoURL, let url = URL(string: urlString) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                default:
-                    PlaceholderHeroView(category: place.category, height: 256)
+    private var bodyCopy: String {
+        "\(place.placeName): \(place.ratingsCount) ratings, \(String(format: "%.1f", place.averageScore)) avg — \(place.category.capitalized) on localsonly."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.feedCanvasCard)
+                    Image(systemName: "leaf.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(Color.feedCanvasOcean)
                 }
+                .frame(width: FeedCanvasMetrics.avatarSize, height: FeedCanvasMetrics.avatarSize)
+                .overlay(Circle().stroke(Color.feedCanvasSky, lineWidth: 2))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(place.placeName)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.feedCanvasInk)
+                        .lineLimit(2)
+                    HStack(spacing: 4) {
+                        Image(systemName: "mappin.and.ellipse")
+                            .font(.system(size: 13, weight: .bold))
+                        Text(subline)
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(Color.feedCanvasConcrete)
+                }
+
+                Spacer(minLength: 8)
+
+                FeedTimePill(text: "Trending")
             }
-        } else {
-            PlaceholderHeroView(category: place.category, height: 256)
+            .padding(.bottom, 16)
+
+            ZStack(alignment: .bottomLeading) {
+                FeedHeroPhoto(
+                    photoURL: place.coverPhotoURL,
+                    category: place.category,
+                    cornerRadius: FeedCanvasMetrics.heroCorner,
+                    aspectRatio: 4.0 / 5.0
+                )
+
+                FeedScoreBadge(score: place.averageScore)
+                    .padding(16)
+            }
+            .padding(.bottom, 16)
+
+            Text(bodyCopy)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.feedCanvasInk)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, 16)
+
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(Color.feedCanvasDivider)
+                    .frame(height: 1)
+                HStack(spacing: 24) {
+                    Label {
+                        Text("11")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                    } icon: {
+                        Image(systemName: "heart")
+                            .font(.system(size: 22))
+                    }
+                    .foregroundStyle(Color.feedCanvasConcrete)
+
+                    Label {
+                        Text("2")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                    } icon: {
+                        Image(systemName: "bubble.right")
+                            .font(.system(size: 22))
+                    }
+                    .foregroundStyle(Color.feedCanvasConcrete)
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "bookmark")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Color.feedCanvasConcrete)
+                }
+                .padding(.top, 16)
+            }
         }
+        .padding(FeedCanvasMetrics.cardPadding)
+        .background(Color.feedCanvasCard)
+        .clipShape(RoundedRectangle(cornerRadius: FeedCanvasMetrics.cardCorner, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: FeedCanvasMetrics.cardCorner, style: .continuous)
+                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.05), radius: 2, y: 1)
     }
 }

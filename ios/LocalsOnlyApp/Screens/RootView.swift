@@ -7,6 +7,9 @@ struct RootView: View {
     @State private var showOnboarding = false
     /// First-launch carousel (AIDesigner welcome → community → tastes → sign up). Independent of auth.
     @AppStorage("hasCompletedLaunchOnboarding") private var hasCompletedLaunchOnboarding = false
+    /// Bump when onboarding visuals/steps change so existing installs see the new flow once.
+    private let launchOnboardingRevision = 7
+    @AppStorage("launchOnboardingRevisionCompleted") private var launchOnboardingRevisionCompleted = 0
     @AppStorage("appearanceMode") private var appearanceMode: Int = 0
 
     private var colorScheme: ColorScheme? {
@@ -25,7 +28,7 @@ struct RootView: View {
             if session.signedIn {
                 signedInTabs
             } else {
-                AuthScreen()
+                Color.coastalBackground.ignoresSafeArea()
             }
         }
         .tint(.coastalCoral)
@@ -75,12 +78,36 @@ struct RootView: View {
         }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingScreen(isPresented: $showOnboarding)
+                .environmentObject(session)
         }
         .onChange(of: showOnboarding) { _, newValue in
-            if !newValue { hasCompletedLaunchOnboarding = true }
+            if !newValue, session.signedIn {
+                hasCompletedLaunchOnboarding = true
+                launchOnboardingRevisionCompleted = launchOnboardingRevision
+                session.presentUnauthenticatedFlow = false
+            } else if !newValue, !session.signedIn {
+                // Avoid racing the fullScreenCover dismiss with `session.signedIn` flipping to `true`
+                // (would immediately re-present onboarding and block post-login dismiss).
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(120))
+                    if !session.signedIn {
+                        showOnboarding = true
+                    }
+                }
+            }
+        }
+        .onChange(of: session.signedIn) { _, signedIn in
+            if !signedIn {
+                showOnboarding = true
+            }
+        }
+        .onChange(of: session.presentUnauthenticatedFlow) { _, show in
+            if show { showOnboarding = true }
         }
         .task {
-            if !hasCompletedLaunchOnboarding {
+            if launchOnboardingRevisionCompleted < launchOnboardingRevision || !hasCompletedLaunchOnboarding {
+                showOnboarding = true
+            } else if !session.signedIn {
                 showOnboarding = true
             }
             if session.signedIn {
@@ -101,8 +128,8 @@ struct RootView: View {
                 ExploreScreen()
             case .rate:
                 RateScreen()
-            case .map:
-                MapTabScreen()
+            case .saved:
+                SavedPlacesScreen(embedded: true)
             case .profile:
                 ProfileScreen()
             }
@@ -112,6 +139,30 @@ struct RootView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             CoastalTabBar(selection: tabBinding)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+        .sheet(item: $session.presentedDetailSheet) { route in
+            Group {
+                switch route {
+                case .place(let placeID):
+                    PlaceDetailScreen(placeID: placeID)
+                case .userProfile(let userID):
+                    UserProfileScreen(userID: userID)
+                }
+            }
+            .environmentObject(session)
+            .id(route.id)
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(28)
+            .presentationBackground(Color.feedCanvasSand)
+        }
+        .sheet(isPresented: $session.isInviteFriendsPresented) {
+            InviteScreen()
+                .environmentObject(session)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(28)
+                .presentationBackground(Color.feedCanvasSand)
         }
     }
 
@@ -127,21 +178,5 @@ struct RootView: View {
                 }
             }
         )
-    }
-}
-
-/// Map tab matching reference navigation (full-screen map + place detail).
-private struct MapTabScreen: View {
-    @EnvironmentObject private var session: SessionManager
-
-    var body: some View {
-        NavigationStack {
-            MapExploreView()
-                .navigationTitle("Map")
-                .navigationBarTitleDisplayMode(.inline)
-                .navigationDestination(for: UUID.self) { placeID in
-                    PlaceDetailScreen(placeID: placeID)
-                }
-        }
     }
 }

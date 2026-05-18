@@ -167,7 +167,9 @@ struct MapExploreView: View {
     }
 
     private func selectedPlaceCard(_ pin: PlaceAnnotation) -> some View {
-        NavigationLink(value: pin.id) {
+        Button {
+            session.presentPlaceDetail(pin.id)
+        } label: {
             GlassCard {
                 HStack {
                     if let coverURL = pin.coverPhotoURL, let url = URL(string: coverURL) {

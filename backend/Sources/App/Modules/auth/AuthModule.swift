@@ -9,6 +9,7 @@ struct AuthModule: AppModule {
         let auth = routes.grouped("auth")
         auth.post("send-code", use: sendCode)
         auth.post("verify-code", use: verifyCode)
+        auth.post("dev-login", use: devLogin)
     }
 }
 
@@ -71,6 +72,35 @@ private func verifyCode(_ req: Request) async throws -> VerifyCodeResponse {
         )
         try await userRepo.save(created, on: req.db)
         user = created
+    }
+
+    guard let userID = user.id else {
+        throw Abort(.internalServerError, reason: "User id missing.")
+    }
+
+    let token = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+    let session = SessionTokenModel(
+        id: UUID(),
+        token: token,
+        userID: userID,
+        expiresAt: Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date().addingTimeInterval(2_592_000)
+    )
+    try await session.create(on: req.db)
+
+    return VerifyCodeResponse(token: token, userID: userID, displayName: user.displayName)
+}
+
+private func devLogin(_ req: Request) async throws -> VerifyCodeResponse {
+    let allowDevLoginFlag = Environment.get("ALLOW_DEV_LOGIN").map { $0.lowercased() == "true" } ?? false
+    let allow = req.application.environment == .development
+        || req.application.environment == .testing
+        || allowDevLoginFlag
+    guard allow else {
+        throw Abort(.notFound)
+    }
+
+    guard let user = try await UserModel.query(on: req.db).first() else {
+        throw Abort(.badRequest, reason: "No users in database. Sign up once with verify-code, then use dev-login.")
     }
 
     guard let userID = user.id else {

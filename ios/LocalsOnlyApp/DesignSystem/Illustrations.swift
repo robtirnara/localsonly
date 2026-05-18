@@ -38,6 +38,111 @@ struct PalmTreeShape: Shape {
     }
 }
 
+/// Brand palm for onboarding and chrome — uses `PalmTreeShape` instead of SF Symbol `tree.fill`.
+struct BrandPalmIcon: View {
+    var size: CGFloat
+    var color: Color = Color.coastalInk
+
+    var body: some View {
+        PalmTreeShape()
+            .fill(color)
+            .frame(width: size, height: size * 1.15)
+    }
+}
+
+// MARK: - Profile setup placeholder (surfer + shaka)
+
+/// Silhouette for profile-photo placeholder — relaxed stance, arm up with shaka (thumb + pinky).
+struct SurferShakaSilhouetteShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width, h = rect.height
+        var p = Path()
+        let cx = w * 0.46
+
+        // Surfboard
+        p.addEllipse(in: CGRect(x: w * 0.06, y: h * 0.76, width: w * 0.88, height: h * 0.11))
+
+        // Head
+        let headR = w * 0.1
+        p.addEllipse(in: CGRect(x: cx - headR, y: h * 0.1, width: headR * 2, height: headR * 2.1))
+
+        // Torso
+        p.addPath(
+            RoundedRectangle(cornerRadius: w * 0.09, style: .continuous)
+                .path(in: CGRect(x: cx - w * 0.12, y: h * 0.26, width: w * 0.24, height: h * 0.34))
+        )
+
+        // Front leg (viewer left)
+        p.move(to: CGPoint(x: cx - w * 0.04, y: h * 0.58))
+        p.addQuadCurve(
+            to: CGPoint(x: cx - w * 0.26, y: h * 0.78),
+            control: CGPoint(x: cx - w * 0.22, y: h * 0.66)
+        )
+        p.addQuadCurve(
+            to: CGPoint(x: cx - w * 0.02, y: h * 0.78),
+            control: CGPoint(x: cx - w * 0.14, y: h * 0.8)
+        )
+        p.addLine(to: CGPoint(x: cx - w * 0.02, y: h * 0.58))
+        p.closeSubpath()
+
+        // Back leg
+        p.move(to: CGPoint(x: cx + w * 0.06, y: h * 0.58))
+        p.addQuadCurve(
+            to: CGPoint(x: cx + w * 0.24, y: h * 0.76),
+            control: CGPoint(x: cx + w * 0.2, y: h * 0.64)
+        )
+        p.addQuadCurve(
+            to: CGPoint(x: cx + w * 0.04, y: h * 0.78),
+            control: CGPoint(x: cx + w * 0.14, y: h * 0.8)
+        )
+        p.addLine(to: CGPoint(x: cx + w * 0.04, y: h * 0.58))
+        p.closeSubpath()
+
+        // Balance arm (down-left)
+        p.addPath(
+            Capsule(style: .continuous)
+                .path(in: CGRect(x: cx - w * 0.34, y: h * 0.34, width: w * 0.22, height: w * 0.07))
+        )
+
+        // Arm up toward shaka
+        p.addPath(
+            Capsule(style: .continuous)
+                .path(in: CGRect(x: cx + w * 0.02, y: h * 0.16, width: w * 0.28, height: w * 0.065))
+        )
+
+        // Shaka — thumb stub
+        let hx = cx + w * 0.26, hy = h * 0.12
+        let fr = w * 0.038
+        p.addEllipse(in: CGRect(x: hx - fr * 2.4, y: hy + fr * 0.2, width: fr * 2.2, height: fr * 1.8))
+        // Pinky stub
+        p.addEllipse(in: CGRect(x: hx + fr * 0.35, y: hy + fr * 1.85, width: fr * 2, height: fr * 1.35))
+        // Palm / bridge
+        p.move(to: CGPoint(x: hx - fr * 0.8, y: hy + fr * 2.2))
+        p.addQuadCurve(
+            to: CGPoint(x: hx + fr * 1.1, y: hy + fr * 1.4),
+            control: CGPoint(x: hx + fr * 0.2, y: hy + fr * 2.8)
+        )
+        p.addQuadCurve(
+            to: CGPoint(x: hx - fr * 0.8, y: hy + fr * 2.2),
+            control: CGPoint(x: hx - fr * 0.5, y: hy + fr * 1.2)
+        )
+        p.closeSubpath()
+
+        return p
+    }
+}
+
+struct SurferShakaSilhouette: View {
+    var color: Color
+    var size: CGFloat = 72
+
+    var body: some View {
+        SurferShakaSilhouetteShape()
+            .fill(color)
+            .frame(width: size, height: size)
+    }
+}
+
 struct SeagullShape: Shape {
     func path(in rect: CGRect) -> Path {
         let w = rect.width, h = rect.height

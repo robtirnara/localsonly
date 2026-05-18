@@ -33,6 +33,8 @@
 		10000000000000000000003B /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000003A /* ToastView.swift */; };
 		10000000000000000000003D /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000003C /* RootView.swift */; };
 		10000000000000000000003F /* AuthScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000003E /* AuthScreen.swift */; };
+		10000000000000000000009A /* AccountGatewayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000099 /* AccountGatewayView.swift */; };
+		10000000000000000000009E /* DropAnchorAuthChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009D /* DropAnchorAuthChrome.swift */; };
 		100000000000000000000041 /* FeedScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000040 /* FeedScreen.swift */; };
 		100000000000000000000043 /* ExploreScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000042 /* ExploreScreen.swift */; };
 		100000000000000000000045 /* RateScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000044 /* RateScreen.swift */; };
@@ -49,6 +51,7 @@
 		100000000000000000000079 /* ImageTileCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000078 /* ImageTileCard.swift */; };
 		10000000000000000000007B /* FeedPhotoCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000007A /* FeedPhotoCard.swift */; };
 		100000000000000000000091 /* SocialFeedCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000090 /* SocialFeedCard.swift */; };
+		10000000000000000000009B /* FeedHeroPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009C /* FeedHeroPhoto.swift */; };
 		10000000000000000000007D /* CategoryFilterStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000007C /* CategoryFilterStrip.swift */; };
 		100000000000000000000081 /* FullScreenPhotoViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000080 /* FullScreenPhotoViewer.swift */; };
 		100000000000000000000083 /* NotificationsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000082 /* NotificationsScreen.swift */; };
@@ -56,10 +59,14 @@
 		100000000000000000000087 /* ListsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000086 /* ListsScreen.swift */; };
 		100000000000000000000089 /* InviteScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000088 /* InviteScreen.swift */; };
 		10000000000000000000008B /* OnboardingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000008A /* OnboardingScreen.swift */; };
+		10000000000000000000009F /* VerifyLocalStatusScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A0 /* VerifyLocalStatusScreen.swift */; };
 		10000000000000000000008D /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000008C /* Colors.xcassets */; };
 		100000000000000000000094 /* CoastalTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000093 /* CoastalTabBar.swift */; };
 		100000000000000000000096 /* AppLinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000095 /* AppLinks.swift */; };
 		100000000000000000000098 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000097 /* SettingsScreen.swift */; };
+		1000000000000000000000A4 /* ProfileSetupScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A3 /* ProfileSetupScreen.swift */; };
+		1000000000000000000000A6 /* TopLocalPlaceRankRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A5 /* TopLocalPlaceRankRow.swift */; };
+		1000000000000000000000A8 /* RateWavesPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A7 /* RateWavesPicker.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -90,6 +97,8 @@
 		10000000000000000000003A /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		10000000000000000000003C /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		10000000000000000000003E /* AuthScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthScreen.swift; sourceTree = "<group>"; };
+		100000000000000000000099 /* AccountGatewayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountGatewayView.swift; sourceTree = "<group>"; };
+		10000000000000000000009D /* DropAnchorAuthChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropAnchorAuthChrome.swift; sourceTree = "<group>"; };
 		100000000000000000000040 /* FeedScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedScreen.swift; sourceTree = "<group>"; };
 		100000000000000000000042 /* ExploreScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreScreen.swift; sourceTree = "<group>"; };
 		100000000000000000000044 /* RateScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateScreen.swift; sourceTree = "<group>"; };
@@ -107,6 +116,7 @@
 		100000000000000000000078 /* ImageTileCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageTileCard.swift; sourceTree = "<group>"; };
 		10000000000000000000007A /* FeedPhotoCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedPhotoCard.swift; sourceTree = "<group>"; };
 		100000000000000000000090 /* SocialFeedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialFeedCard.swift; sourceTree = "<group>"; };
+		10000000000000000000009C /* FeedHeroPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedHeroPhoto.swift; sourceTree = "<group>"; };
 		10000000000000000000007C /* CategoryFilterStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryFilterStrip.swift; sourceTree = "<group>"; };
 		100000000000000000000080 /* FullScreenPhotoViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullScreenPhotoViewer.swift; sourceTree = "<group>"; };
 		100000000000000000000082 /* NotificationsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsScreen.swift; sourceTree = "<group>"; };
@@ -114,10 +124,14 @@
 		100000000000000000000086 /* ListsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsScreen.swift; sourceTree = "<group>"; };
 		100000000000000000000088 /* InviteScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteScreen.swift; sourceTree = "<group>"; };
 		10000000000000000000008A /* OnboardingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingScreen.swift; sourceTree = "<group>"; };
+		1000000000000000000000A0 /* VerifyLocalStatusScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifyLocalStatusScreen.swift; sourceTree = "<group>"; };
 		10000000000000000000008C /* Colors.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Colors.xcassets; sourceTree = "<group>"; };
 		100000000000000000000093 /* CoastalTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoastalTabBar.swift; sourceTree = "<group>"; };
 		100000000000000000000095 /* AppLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLinks.swift; sourceTree = "<group>"; };
 		100000000000000000000097 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		1000000000000000000000A3 /* ProfileSetupScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupScreen.swift; sourceTree = "<group>"; };
+		1000000000000000000000A5 /* TopLocalPlaceRankRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopLocalPlaceRankRow.swift; sourceTree = "<group>"; };
+		1000000000000000000000A7 /* RateWavesPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateWavesPicker.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -205,9 +219,14 @@
 				100000000000000000000078 /* ImageTileCard.swift */,
 				10000000000000000000007A /* FeedPhotoCard.swift */,
 				100000000000000000000090 /* SocialFeedCard.swift */,
+				1000000000000000000000A5 /* TopLocalPlaceRankRow.swift */,
+				1000000000000000000000A7 /* RateWavesPicker.swift */,
+				10000000000000000000009C /* FeedHeroPhoto.swift */,
 				10000000000000000000007C /* CategoryFilterStrip.swift */,
 				100000000000000000000080 /* FullScreenPhotoViewer.swift */,
 				100000000000000000000093 /* CoastalTabBar.swift */,
+				100000000000000000000099 /* AccountGatewayView.swift */,
+				10000000000000000000009D /* DropAnchorAuthChrome.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -231,6 +250,8 @@
 				100000000000000000000086 /* ListsScreen.swift */,
 				100000000000000000000088 /* InviteScreen.swift */,
 				10000000000000000000008A /* OnboardingScreen.swift */,
+				1000000000000000000000A3 /* ProfileSetupScreen.swift */,
+				1000000000000000000000A0 /* VerifyLocalStatusScreen.swift */,
 				100000000000000000000097 /* SettingsScreen.swift */,
 			);
 			path = Screens;
@@ -341,6 +362,8 @@
 				10000000000000000000003B /* ToastView.swift in Sources */,
 				10000000000000000000003D /* RootView.swift in Sources */,
 				10000000000000000000003F /* AuthScreen.swift in Sources */,
+				10000000000000000000009A /* AccountGatewayView.swift in Sources */,
+				10000000000000000000009E /* DropAnchorAuthChrome.swift in Sources */,
 				100000000000000000000041 /* FeedScreen.swift in Sources */,
 				100000000000000000000043 /* ExploreScreen.swift in Sources */,
 				100000000000000000000045 /* RateScreen.swift in Sources */,
@@ -359,6 +382,9 @@
 				100000000000000000000079 /* ImageTileCard.swift in Sources */,
 				10000000000000000000007B /* FeedPhotoCard.swift in Sources */,
 				100000000000000000000091 /* SocialFeedCard.swift in Sources */,
+				1000000000000000000000A6 /* TopLocalPlaceRankRow.swift in Sources */,
+				1000000000000000000000A8 /* RateWavesPicker.swift in Sources */,
+				10000000000000000000009B /* FeedHeroPhoto.swift in Sources */,
 				10000000000000000000007D /* CategoryFilterStrip.swift in Sources */,
 				100000000000000000000081 /* FullScreenPhotoViewer.swift in Sources */,
 				100000000000000000000083 /* NotificationsScreen.swift in Sources */,
@@ -366,6 +392,8 @@
 				100000000000000000000087 /* ListsScreen.swift in Sources */,
 				100000000000000000000089 /* InviteScreen.swift in Sources */,
 				10000000000000000000008B /* OnboardingScreen.swift in Sources */,
+				1000000000000000000000A4 /* ProfileSetupScreen.swift in Sources */,
+				10000000000000000000009F /* VerifyLocalStatusScreen.swift in Sources */,
 				100000000000000000000094 /* CoastalTabBar.swift in Sources */,
 				100000000000000000000096 /* AppLinks.swift in Sources */,
 				100000000000000000000098 /* SettingsScreen.swift in Sources */,
